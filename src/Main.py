@@ -1,5 +1,6 @@
 from data.Database import DatabaseSingleton
-
+from classes.BibliotecaService import BibliotecaService
+from classes.Usuario import *
 
 def initializer_db():
     db = DatabaseSingleton()
@@ -60,6 +61,16 @@ def initializer_db():
 def main():
     print("Bienvenidos al TP DAO")
     initializer_db()
+
+    biblioteca_service = BibliotecaService()
+
+    # Registro de un nuevo estudiante
+    nuevo_estudiante = Estudiante(id_usuario=1, nombre="Juan", apellido="Pérez", direccion="Calle Falsa 123", telefono="123456789")
+    biblioteca_service.registrar_usuario(nuevo_estudiante)
+
+    # Registro de un nuevo profesor
+    nuevo_profesor = Profesor(id_usuario=2, nombre="Ana", apellido="Gómez", direccion="Calle Real 456", telefono="987654321")
+    biblioteca_service.registrar_usuario(nuevo_profesor)
 
 
 if "__main__" == __name__:

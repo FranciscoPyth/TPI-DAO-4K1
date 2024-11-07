@@ -26,9 +26,15 @@ class DatabaseSingleton:
         try:
             self.test_connection()
             self.cursor.execute(query, parameters)
-            self.connection.commit()
+            
+            # Si la consulta es un SELECT, devolvemos los resultados
+            if query.strip().upper().startswith("SELECT"):
+                return self.cursor.fetchall()  # Devuelve todos los resultados
+            else:
+                self.connection.commit()  # Si no es SELECT, solo ejecutamos commit
         except Error as e:
             print(f"Error al ejecutar la consulta: {e}")
+
 
     def fetch_query(self, query, parameters=()):
         try:

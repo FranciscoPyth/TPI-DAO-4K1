@@ -9,13 +9,27 @@ class BibliotecaService:
         self.db = DatabaseSingleton()
 
     def registrar_autor(self, autor: Autor):
-        query = """
-        INSERT INTO autores (nombre, apellido, nacionalidad)
-        VALUES (?, ?, ?)
+        # Primero verificamos si el autor ya existe en la base de datos
+        check_query = """
+        SELECT COUNT(*) FROM autores
+        WHERE nombre = ? AND apellido = ? AND nacionalidad = ?
         """
-        params = (autor.nombre, autor.apellido, autor.nacionalidad)
-        self.db.execute_query(query, params)
-        print("Autor registrado con éxito.")
+        check_params = (autor.nombre, autor.apellido, autor.nacionalidad)
+        result = self.db.execute_query(check_query, check_params)
+
+        # Si el autor ya existe, no lo insertamos y mostramos un mensaje
+        if result[0][0] > 0:  # Si el conteo es mayor a 0, ya existe un autor con estos datos
+            print("El autor ya está registrado.")
+        else:
+            # Si no existe, procedemos a insertarlo
+            query = """
+            INSERT INTO autores (nombre, apellido, nacionalidad)
+            VALUES (?, ?, ?)
+            """
+            params = (autor.nombre, autor.apellido, autor.nacionalidad)
+            self.db.execute_query(query, params)
+            print("Autor registrado con éxito.")
+
 
     def registrar_libro(self, libro: Libro):
         query = """

@@ -1,5 +1,8 @@
 import tkinter as tk
 from tkinter import ttk
+from classes.BibliotecaService import BibliotecaService
+from classes.Autor import Autor
+
 
 class LibraryApp(tk.Tk):
     def __init__(self):
@@ -159,7 +162,22 @@ class LibraryApp(tk.Tk):
 
     # Funciones para guardar datos
     def save_autor(self):
-        print("Autor guardado")
+        # Capturamos los valores ingresados por el usuario
+        nombre = self.nombre_entry.get()
+        apellido = self.apellido_entry.get()
+        nacionalidad = self.nacionalidad_combobox.get()
+        autor = Autor(nombre, apellido, nacionalidad)
+        # Aquí deberías llamar a un método en tu servicio de base de datos para insertar estos datos
+        if autor:
+            # Usando un método de biblioteca para insertar el autor en la base de datos
+            try:
+                biblioteca_service = BibliotecaService()  # Asegúrate de tener una instancia o método accesible para interactuar con la BD
+                biblioteca_service.registrar_autor(autor)
+            except Exception as e:
+                print(f"Error al guardar el autor: {e}")
+        else:
+            print("Por favor, completa todos los campos.")
+
 
     def save_libro(self):
         print("Libro guardado")
@@ -171,7 +189,3 @@ class LibraryApp(tk.Tk):
     def save_devolucion(self):
         print("Devolución guardada")
         self.devolucion_form_frame.pack_forget()
-
-# Ejecutar la aplicación
-app = LibraryApp()
-app.mainloop()

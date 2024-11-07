@@ -1,6 +1,7 @@
 from data.Database import DatabaseSingleton
 from classes.BibliotecaService import BibliotecaService
 from classes.Usuario import *
+from windows.LibraryApp import LibraryApp
 
 def initializer_db():
     db = DatabaseSingleton()
@@ -9,7 +10,7 @@ def initializer_db():
     create_table_queries = [
         """
         CREATE TABLE IF NOT EXISTS autores (
-            id INT AUTO_INCREMENT PRIMARY KEY,
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
             nombre VARCHAR(100) NOT NULL,
             apellido VARCHAR(100) NOT NULL,
             nacionalidad VARCHAR(50)
@@ -17,7 +18,7 @@ def initializer_db():
         """,
         """
         CREATE TABLE IF NOT EXISTS usuarios (
-            id INT AUTO_INCREMENT PRIMARY KEY,
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
             nombre VARCHAR(100) NOT NULL,
             apellido VARCHAR(100) NOT NULL,
             tipo_usuario VARCHAR(50) CHECK (tipo_usuario IN ('estudiante', 'profesor')),
@@ -38,7 +39,7 @@ def initializer_db():
         """,
         """
         CREATE TABLE IF NOT EXISTS prestamos (
-            id INT AUTO_INCREMENT PRIMARY KEY,
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
             id_usuario INT,
             isbn_libro VARCHAR(13),
             fecha_prestamo DATE NOT NULL,
@@ -59,19 +60,10 @@ def initializer_db():
 
 
 def main():
-    print("Bienvenidos al TP DAO")
-    initializer_db()
+    initializer_db()    
 
-    biblioteca_service = BibliotecaService()
-
-    # Registro de un nuevo estudiante
-    nuevo_estudiante = Estudiante(id_usuario=1, nombre="Juan", apellido="Pérez", direccion="Calle Falsa 123", telefono="123456789")
-    biblioteca_service.registrar_usuario(nuevo_estudiante)
-
-    # Registro de un nuevo profesor
-    nuevo_profesor = Profesor(id_usuario=2, nombre="Ana", apellido="Gómez", direccion="Calle Real 456", telefono="987654321")
-    biblioteca_service.registrar_usuario(nuevo_profesor)
-
+    app = LibraryApp()
+    app.mainloop()
 
 if "__main__" == __name__:
     main()

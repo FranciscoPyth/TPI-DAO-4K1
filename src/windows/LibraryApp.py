@@ -2,7 +2,9 @@ import tkinter as tk
 from tkinter import ttk
 from services.BibliotecaService import BibliotecaService
 from classes.Autor import Autor
-
+from classes.Libro import Libro
+from classes.Usuario import Usuario
+from classes.Prestamo import Prestamo
 
 class LibraryApp(tk.Tk):
     def __init__(self):
@@ -22,7 +24,7 @@ class LibraryApp(tk.Tk):
         tk.Button(options_frame, text="Nuevo Autor", command=self.show_nuevo_autor, width=15, bg="#4CAF50", fg="white").grid(row=0, column=0, padx=10, pady=5)
         tk.Button(options_frame, text="Nuevo Libro", command=self.show_nuevo_libro, width=15, bg="#4CAF50", fg="white").grid(row=0, column=1, padx=10, pady=5)
         tk.Button(options_frame, text="Préstamo", command=self.show_prestamo, width=15, bg="#4CAF50", fg="white").grid(row=0, column=2, padx=10, pady=5)
-        #tk.Button(options_frame, text="Usuario nuevo", command=self.show_devolucion, width=15, bg="#4CAF50", fg="white").grid(row=0, column=3, padx=10, pady=5)
+        tk.Button(options_frame, text="Usuario nuevo", command=self.show_usuario, width=15, bg="#4CAF50", fg="white").grid(row=0, column=5, padx=10, pady=5)
 
         # Frame contenedor donde se mostrarán los formularios
         self.content_frame = tk.Frame(self, bg="#f5f5f5")
@@ -32,6 +34,7 @@ class LibraryApp(tk.Tk):
         self.create_nuevo_autor_form()
         self.create_nuevo_libro_form()
         self.create_prestamo_form()
+        self.create_usuario_form()
 
         # Mostrar el formulario de Nuevo Autor por defecto
         self.show_nuevo_autor()
@@ -109,6 +112,33 @@ class LibraryApp(tk.Tk):
         tk.Button(self.prestamo_form_frame, text="Guardar", command=self.save_prestamo, bg="#4CAF50", fg="white").pack(pady=10)
         self.prestamo_form_frame.pack_forget()
 
+    def create_usuario_form(self):
+        self.usuario_frame = tk.Frame(self.content_frame, bg="#f5f5f5")
+
+        tk.Label(self.usuario_frame, text="Nombre:", bg="#f5f5f5", font=("Helvetica", 10)).pack(pady=5)
+        self.nombre_usuario_entry = tk.Entry(self.usuario_frame, font=("Helvetica", 10))
+        self.nombre_usuario_entry.pack(pady=5)
+
+        tk.Label(self.usuario_frame, text="Apellido:", bg="#f5f5f5", font=("Helvetica", 10)).pack(pady=5)
+        self.apellido_usuario_entry = tk.Entry(self.usuario_frame, font=("Helvetica", 10))
+        self.apellido_usuario_entry.pack(pady=5)
+
+        tk.Label(self.usuario_frame, text="Profesor/Estudiante:", bg="#f5f5f5", font=("Helvetica", 10)).pack(pady=5)
+        self.tipo_usuario_combobox = ttk.Combobox(self.usuario_frame, values=["Profesor", "Estudiante"])
+        self.tipo_usuario_combobox.pack(pady=5)
+        
+        tk.Label(self.usuario_frame, text="Dirección:", bg="#f5f5f5", font=("Helvetica", 10)).pack(pady=5)
+        self.direccion_usuario_entry = tk.Entry(self.usuario_frame, font=("Helvetica", 10))
+        self.direccion_usuario_entry.pack(pady=5)
+
+        tk.Label(self.usuario_frame, text="Teléfono:", bg="#f5f5f5", font=("Helvetica", 10)).pack(pady=5)
+        self.telefono_usuario_entry = tk.Entry(self.usuario_frame, font=("Helvetica", 10))
+        self.telefono_usuario_entry.pack(pady=5)
+
+        tk.Button(self.usuario_frame, text="Guardar", command=self.save_usuario, bg="#4CAF50", fg="white").pack(pady=10)
+        
+    
+    
     # Funciones para mostrar formularios de Préstamo y Devolución
     def show_prestamo_form(self):
         self.prestamo_form_frame.pack()
@@ -126,6 +156,10 @@ class LibraryApp(tk.Tk):
     def show_prestamo(self):
         self.clear_content_frame()
         self.prestamo_frame.pack()
+    
+    def show_usuario(self):
+        self.clear_content_frame()
+        self.usuario_frame.pack()
 
     # Funciones para guardar datos
     def save_autor(self):
@@ -144,7 +178,23 @@ class LibraryApp(tk.Tk):
                 print(f"Error al guardar el autor: {e}")
         else:
             print("Por favor, completa todos los campos.")
+            
+    
+    def save_usuario(self):
+        nombre = self.nombre_usuario_entry.get()
+        apellido = self.apellido_usuario_entry.get()
+        tipo_usuario = self.tipo_usuario_combobox.get()
+        direccion = self.direccion_usuario_entry.get()
+        telefono = self.telefono_usuario_entry.get()
 
+        try:
+            usuario = Usuario(nombre, apellido, tipo_usuario, direccion, telefono)
+            biblioteca_service = BibliotecaService()
+            biblioteca_service.registrar_usuario(usuario)
+        except ValueError as e:
+            print(e)
+        except Exception as e:
+            print(f"Error al guardar el usuario: {e}")
 
     def save_libro(self):
         print("Libro guardado")
@@ -153,6 +203,7 @@ class LibraryApp(tk.Tk):
         print("Préstamo guardado")
         self.prestamo_form_frame.pack_forget()
 
-    def save_usuario(self):
-        print('Usuario guardado')
+        
+        
+        
 

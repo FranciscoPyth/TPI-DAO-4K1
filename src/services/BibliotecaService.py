@@ -35,7 +35,7 @@ class BibliotecaService:
             # Ejecuta la consulta y realiza el commit
                 self.db.execute_query(query, params)
 
-                 # Obtiene el id generado por SQLite y lo asigna al objeto Autor
+                # Obtiene el id generado por SQLite y lo asigna al objeto Autor
                 autor.id = self.db.cursor.lastrowid
                 print(f"-----Autor registrado con exito.-----")
                 
@@ -61,7 +61,7 @@ class BibliotecaService:
         INSERT INTO usuarios (nombre, apellido, tipo_usuario, direccion, telefono)
         VALUES (?, ?, ?, ?, ?)
         """
-        params = (usuario.nombre, usuario.apellido, tipo_usuario, usuario.direccion, usuario.telefono)
+        params = (usuario.nombre, usuario.apellido, usuario.tipo_usuario, usuario.direccion, usuario.telefono)
         
         try:
             # Ejecuta la consulta y realiza el commit

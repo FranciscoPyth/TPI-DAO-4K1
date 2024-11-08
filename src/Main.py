@@ -1,5 +1,5 @@
 from data.Database import DatabaseSingleton
-from classes.BibliotecaService import BibliotecaService
+from services.BibliotecaService import BibliotecaService
 from classes.Usuario import *
 from windows.LibraryApp import LibraryApp
 

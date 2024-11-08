@@ -5,13 +5,16 @@ from classes.Autor import Autor
 from classes.Libro import Libro
 from classes.Usuario import Usuario
 from classes.Prestamo import Prestamo
+from services.LibroService import LibroService
+from services.AutorService import AutorService
 
 class LibraryApp(tk.Tk):
-    def __init__(self):
+    def __init__(self, db):
         super().__init__()
         self.title("Gestión de Biblioteca")
         self.geometry("600x500")
         self.configure(bg="#f5f5f5")
+        self.db = db
 
         # Título de la aplicación
         tk.Label(self, text="Gestión de Biblioteca", font=("Helvetica", 16, "bold"), bg="#f5f5f5", fg="#333").pack(pady=10)
@@ -83,6 +86,10 @@ class LibraryApp(tk.Tk):
         tk.Label(self.nuevo_libro_frame, text="Autor:", bg="#f5f5f5", font=("Helvetica", 10)).pack(pady=5)
         self.autor_combobox = ttk.Combobox(self.nuevo_libro_frame, values=["Autor 1", "Autor 2", "Autor 3"])
         self.autor_combobox.pack(pady=5)
+
+        tk.Label(self.nuevo_libro_frame, text="Cantidad:", bg="#f5f5f5", font=("Helvetica", 10)).pack(pady=5)
+        self.cantidad_entry = tk.Entry(self.nuevo_libro_frame, font=("Helvetica", 10))
+        self.cantidad_entry.pack(pady=5)
 
         tk.Button(self.nuevo_libro_frame, text="Guardar", command=self.save_libro, bg="#4CAF50", fg="white").pack(pady=10)
 
@@ -172,8 +179,32 @@ class LibraryApp(tk.Tk):
         if autor:
             # Usando un método de biblioteca para insertar el autor en la base de datos
             try:
-                biblioteca_service = BibliotecaService()  # Asegúrate de tener una instancia o método accesible para interactuar con la BD
-                biblioteca_service.registrar_autor(autor)
+                autor_service = AutorService(self.db)  # Asegúrate de tener una instancia o método accesible para interactuar con la BD
+                autor_service.registrar_autor(autor)
+            except Exception as e:
+                print(f"Error al guardar el autor: {e}")
+        else:
+            print("Por favor, completa todos los campos.")
+
+    
+    def save_libro(self):
+        # Capturamos los valores ingresados por el usuario
+        codigo_isbn = self.code_isbn_entry.get()
+        titulo = self.titulo_entry.get()
+        genero = self.genero_combobox.get()
+        anio_publicacion = self.anio_entry.get()
+        autor = self.autor_combobox.get()
+        cantidad = self.cantidad_entry.get()
+
+        # Crear el objeto Libro con los nuevos atributos
+        libro = Libro(codigo_isbn, titulo, genero, anio_publicacion, autor, cantidad)
+
+        # Aquí deberías llamar a un método en tu servicio de base de datos para insertar estos datos
+        if libro:
+            # Usando un método de biblioteca para insertar el autor en la base de datos
+            try:
+                libro_service = LibroService(self.db)
+                libro_service.registrar_libro(libro)
             except Exception as e:
                 print(f"Error al guardar el autor: {e}")
         else:
@@ -196,14 +227,7 @@ class LibraryApp(tk.Tk):
         except Exception as e:
             print(f"Error al guardar el usuario: {e}")
 
-    def save_libro(self):
-        print("Libro guardado")
 
     def save_prestamo(self):
         print("Préstamo guardado")
         self.prestamo_form_frame.pack_forget()
-
-        
-        
-        
-

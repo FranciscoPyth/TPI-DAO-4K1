@@ -1,5 +1,6 @@
 class Libro():
     def __init__(self, code_isbn, titulo, genero, anio_publicacion, autor, cant_disponible):
+        self.id = None
         self.code_isbn = code_isbn
         self.titulo = titulo
         self.genero = genero

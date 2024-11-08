@@ -36,11 +36,15 @@ class DatabaseSingleton:
             print(f"Error al ejecutar la consulta: {e}")
 
 
-    def fetch_query(self, query, parameters=()):
+    #Funcion MODIFICADA - Permite retornar un solo registro o varios registros según la consulta
+    def fetch_query(self, query, parameters=(), single=False):
         try:
             self.test_connection()
             self.cursor.execute(query, parameters)
-            return self.cursor.fetchall()
+            if single:
+                return self.cursor.fetchone()
+            else:
+                return self.cursor.fetchall()
         except Error as e:
             print(f"Error al obtener datos: {e}")
             return None

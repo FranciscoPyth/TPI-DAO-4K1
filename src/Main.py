@@ -3,9 +3,7 @@ from services.BibliotecaService import BibliotecaService
 from classes.Usuario import *
 from windows.LibraryApp import LibraryApp
 
-def initializer_db():
-    db = DatabaseSingleton()
-
+def initializer_db(db):
     # Lista de consultas separadas
     create_table_queries = [
         """
@@ -60,9 +58,9 @@ def initializer_db():
 
 
 def main():
-    initializer_db()    
-
-    app = LibraryApp()
+    db = DatabaseSingleton()
+    initializer_db(db)    
+    app = LibraryApp(db)
     app.mainloop()
 
 if "__main__" == __name__:

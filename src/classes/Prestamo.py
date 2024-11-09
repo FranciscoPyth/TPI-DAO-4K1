@@ -5,3 +5,7 @@ class Prestamo():
         self.libro = libro
         self.fecha_prestamo = fecha_prestamo
         self.fecha_devolucion = fecha_devolucion
+        self.fecha_devolucion_real = None
+    
+    def setFechaDevolucionReal(self, fecha):
+        self.fecha_devolucion_real = fecha

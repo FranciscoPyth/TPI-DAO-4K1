@@ -1,30 +1,46 @@
 from classes.Autor import Autor
+from data.Database import DatabaseSingleton
 
 
-class AutorService:
+class AutorService():
+
+    #Instancia de BD
     def __init__(self, db):
         self.db = db
 
+    #Buscar autor por id - lo uso para registrar los libros
+    def findAutorById(self, autor: Autor):
+        query = """
+        SELECT * FROM autores A WHERE A.id = ?
+        """ 
+        paramsAutor = (autor.id,)
+        return self.db.fetch_query(query, paramsAutor, single=True)
+        
+
+    #Encontrar autores segun su telefono 
+    def findAutorByTelefono(self, autor: Autor):
+        query = """
+            SELECT * FROM autores A WHERE A.telefono = ?
+            """
+        params = (autor.telefono,)
+        return self.db.fetch_query(query, params, single=True)
+
+
+    #REGISTRO DE UN NUEVO AUTOR
     def registrar_autor(self, autor: Autor):
         print("--------REGISTRO DE AUTOR-------------")
-        # Primero verificamos si el autor ya existe en la base de datos
-        check_query = """
-        SELECT COUNT(*) FROM autores
-        WHERE nombre = ? AND apellido = ? AND nacionalidad = ?
-        """
-        check_params = (autor.nombre, autor.apellido, autor.nacionalidad)
-        result = self.db.execute_query(check_query, check_params)
 
-        # Si el autor ya existe, no lo insertamos y mostramos un mensaje
-        if result[0][0] > 0:  # Si el conteo es mayor a 0, ya existe un autor con estos datos
-            print("El autor ya está registrado.")
-        else:
-            # Si no existe, procedemos a insertarlo
+        # Primero verificamos si el autor ya existe en la base de datos
+        autorEncontrado = self.findAutorByTelefono(autor)
+
+        if(not autorEncontrado):
+            print(f"El autor {autor.nombre} con telefono: {autor.telefono} NO SE ENCUENTRA en la BD - Se procede a su registro")
+        
             query = """
-            INSERT INTO autores (nombre, apellido, nacionalidad)
-            VALUES (?, ?, ?)
+            INSERT INTO autores (nombre, apellido, telefono, nacionalidad)
+            VALUES (?, ?, ?, ?)
             """
-            params = (autor.nombre, autor.apellido, autor.nacionalidad)
+            params = (autor.nombre, autor.apellido, autor.telefono, autor.nacionalidad)
             
             try:
             # Ejecuta la consulta y realiza el commit
@@ -36,8 +52,11 @@ class AutorService:
                 
             except Exception as e:
                 print(f"Error al registrar autor: {e}")
+        else:
+            print(f"El autor {autor.nombre} ya se encuentra en la BD")
 
         
+    #CONSULTA DE AUTORES
     def consultar_autores(self):
         query = "SELECT id, nombre, apellido, nacionalidad FROM autores"
         try:

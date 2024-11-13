@@ -103,7 +103,7 @@ def main():
     usuario_service.registrar_usuario(nuevo_profesor)
 
     # Usuario que no se registra
-    nuevo_usuario = Estudiante(nombre="Juan", apellido="Pérez", direccion="Calle Falsa 123", telefono="123456789")
+    nuevo_usuario = Estudiante(nombre="Martina", apellido="Pérez", direccion="Calle Falsa 123", telefono="123456789")
     
     # Registro de un nuevo autor
     nuevo_autor = Autor(nombre="Agatha", apellido="Christie", telefono="35144444", nacionalidad="Reino Unido")
@@ -179,14 +179,28 @@ def main():
 
     prestamo6 = Prestamo(usuario=nuevo_estudiante, libro=nuevo_libro, fecha_prestamo=date(2000, 10, 10), fecha_devolucion=date(2000, 11, 10)) 
     
+    print("------------------------------------------------------------------------------------")
     #Consultas
     usuario_service.tienePrestamosUsuario(nuevo_estudiante)
     usuario_service.tienePrestamosUsuario(nuevo_profesor)
 
+    #Consulta
+    libro_service.consultarDispinibilidadLibro(nuevo_libro)
+
     #Registro de devoluciones
-    prestamo_service.registrar_devolucion(prestamo1, fechaDevolucionReal=date(2000, 10, 15)) #OK
-    prestamo_service.registrar_devolucion(prestamo1, fechaDevolucionReal=date(2000, 10, 15)) #ERROR - Prestamo ya devuelto
-    prestamo_service.registrar_devolucion(prestamo6, fechaDevolucionReal=date(2000, 10, 15)) #Error - Prestamo NO en BD
+    prestamo_service.registrar_devolucion_de_prestamos(nuevo_libro, nuevo_estudiante, fechaDevolucionReal=date(2024,10,10))
+    prestamo_service.registrar_devolucion_de_prestamos(nuevo_libro, nuevo_estudiante, fechaDevolucionReal=date(2024,10,10))
+    
+    libro_service.consultarDispinibilidadLibro(nuevo_libro)
+
+    #Registrar prestamo
+    prestamo7 = Prestamo(usuario=nuevo_estudiante, libro=nuevo_libro, fecha_prestamo=date(2000, 10, 10), fecha_devolucion=date(2000, 11, 10)) 
+    prestamo_service.registrar_prestamo(prestamo7)
+    prestamo8 = Prestamo(usuario=nuevo_estudiante, libro=nuevo_libro, fecha_prestamo=date(2000, 10, 10), fecha_devolucion=date(2000, 11, 10)) 
+    prestamo_service.registrar_prestamo(prestamo8)
+
+    prestamo_service.registrar_devolucion_de_prestamos(nuevo_libro, nuevo_estudiante, fechaDevolucionReal=date(2024, 10, 10))
+
  
     #app = LibraryApp(db)
     #app.mainloop()

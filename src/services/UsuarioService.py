@@ -42,7 +42,7 @@ class UsuarioService:
         tipo_usuario = self.getTipoUsuario(usuario)
         
         query = """
-        SELECT COUNT(*) FROM prestamos P JOIN usuarios U ON (P.id_usuario = U.id) WHERE U.tipo_usuario = ?       
+        SELECT COUNT(*) FROM prestamos P JOIN usuarios U ON (P.id_usuario = U.id) WHERE U.tipo_usuario = ? AND P.fecha_devolucion_real IS NULL       
         """
         parameters = (tipo_usuario,)
         cantPrestamosUsuario = self.db.fetch_query(query, parameters, single=True)

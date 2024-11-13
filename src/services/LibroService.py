@@ -20,7 +20,7 @@ class LibroService:
         print("--------CONSULTA DE DISPONIBILIDAD-------------")
         
         query = """
-            SELECT COUNT(*) FROM libros L JOIN prestamos P ON L.isbn = P.isbn_libro WHERE L.isbn = ?
+            SELECT COUNT(*) FROM libros L JOIN prestamos P ON L.isbn = P.isbn_libro WHERE L.isbn = ? AND P.fecha_devolucion_real IS NULL
             """
         params = (libro.code_isbn,)
         cantPrestamosLibro= self.db.fetch_query(query, params, single=True)

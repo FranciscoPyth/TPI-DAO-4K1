@@ -6,11 +6,9 @@ from classes.Autor import Autor
 from classes.Libro import Libro
 from classes.Usuario import Usuario, Estudiante, Profesor
 from services.UsuarioService import UsuarioService
-from classes.Prestamo import Prestamo
 from services.LibroService import LibroService
 from services.AutorService import AutorService
-import os
-from tkinter import PhotoImage
+from services.ReporteService import ReporteService
 from PIL import Image, ImageTk, ImageEnhance, ImageDraw
 
 
@@ -20,11 +18,11 @@ class LibraryApp(tk.Tk):
         self.db = db
         self.title("BibliotecApp")
         self.geometry("1950x1024")
-        self.iconbitmap(r"C:/Users/Usuario/Desktop/TPDAO2/TPI-DAO-4K1/src/images/logo_app.ico")
+        self.iconbitmap(r"C:/Users/Usuario/General/Archivos Fran Dell/Ingeniería en Sistemas/4° Cuarto Año/Desarrollo de Aplicaciones con Objetos (DAO)/TPI-DAO-4K1/src/images/logo_app.ico")
 
 
         # Cargar y colocar la imagen de fondo con transparencia
-        background_image = Image.open(r"C:/Users/Usuario/Desktop/TPDAO2/TPI-DAO-4K1/src/images/fondo.jpg")
+        background_image = Image.open(r"C:/Users/Usuario/General/Archivos Fran Dell/Ingeniería en Sistemas/4° Cuarto Año/Desarrollo de Aplicaciones con Objetos (DAO)/TPI-DAO-4K1/src/images/fondo.jpg")
         background_image = background_image.resize((1950, 1024), Image.LANCZOS)
         background_image = self.apply_transparency(background_image, alpha=0.4)
         self.background_photo = ImageTk.PhotoImage(background_image)
@@ -546,7 +544,69 @@ class LibraryApp(tk.Tk):
         tk.Button(self.usuario_frame, text="Guardar", command=self.save_usuario, bg="#4CAF50", fg="white").pack(pady=10)
         
     
-    
+    def abrir_reportes(self):
+        # Crear la ventana
+        ventana_reportes = tk.Toplevel(self)
+        ventana_reportes.title("Reportes")
+        
+        # Establecer tamaño de la ventana
+        ancho_ventana = 975
+        alto_ventana = 512
+        
+        # Obtener las dimensiones de la pantalla
+        pantalla_ancho = ventana_reportes.winfo_screenwidth()
+        pantalla_alto = ventana_reportes.winfo_screenheight()
+
+        # Calcular las coordenadas para centrar la ventana
+        x = (pantalla_ancho // 2) - (ancho_ventana // 2)
+        y = (pantalla_alto // 2) - (alto_ventana // 2)
+
+        # Establecer la posición de la ventana en el centro de la pantalla
+        ventana_reportes.geometry(f"{ancho_ventana}x{alto_ventana}+{x}+{y}")
+        
+        # Configurar el fondo de la ventana
+        ventana_reportes.config(bg="#CFCADC")  # Fondo gris claro
+        
+        # Título con estilo mejorado y texto en blanco
+        tk.Label(ventana_reportes, text="Gestión de Reportes", font=("Helvetica", 22, "bold"), bg="#DA9A9A", fg="black", relief="solid", padx=10, pady=10).pack(pady=20)
+        
+        # Función para personalizar los botones
+        def crear_boton(texto, comando, color_fondo, color_hover):
+            boton = tk.Button(ventana_reportes, text=texto, font=("Helvetica", 14), bg=color_fondo, fg="black", relief="flat", 
+                            height=2, width=25, bd=3, command=comando)
+            boton.pack(pady=12)
+            boton.bind("<Enter>", lambda e: boton.config(bg=color_hover))  # Efecto hover
+            boton.bind("<Leave>", lambda e: boton.config(bg=color_fondo))  # Efecto hover
+            return boton
+
+        # Botones para generar reportes, con texto blanco
+        crear_boton("Préstamos Vencidos", self.generar_prestamos_vencidos, "#DA9A9A", "#FF6565")
+        crear_boton("Libros Más Prestados", self.generar_libros_mas_prestados, "#DA9A9A", "#FF6565")
+        crear_boton("Usuarios Más Activos", self.generar_usuarios_mas_activos, "#DA9A9A", "#FF6565")
+        
+        # Botón de volver con otro color, texto blanco
+        crear_boton("Volver", ventana_reportes.destroy, "#FF6565", "#e53935")
+        
+        # Se puede agregar un borde o sombreado a la ventana para dar más profundidad
+        ventana_reportes.update_idletasks()  # Asegura que se actualicen los tamaños de los widgets
+        ventana_reportes.attributes("-topmost", True)  # Mantener la ventana al frente
+
+    def generar_prestamos_vencidos(self):
+        # Crear el servicio de reportes y generar el reporte
+        reporte_service = ReporteService(self.db)
+        reporte_service.listar_prestamos_vencidos()
+
+    def generar_libros_mas_prestados(self):
+        # Crear el servicio de reportes y generar el reporte
+        reporte_service = ReporteService(self.db)
+        reporte_service.libros_mas_prestados()
+
+    def generar_usuarios_mas_activos(self):
+        # Crear el servicio de reportes y generar el reporte
+        reporte_service = ReporteService(self.db)
+        reporte_service.usuarios_mas_activos()
+
+
     # Funciones para mostrar formularios de Préstamo y Devolución
     def show_prestamo_form(self):
         self.prestamo_form_frame.pack()

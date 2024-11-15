@@ -10,6 +10,7 @@ from services.LibroService import LibroService
 from services.AutorService import AutorService
 from services.ReporteService import ReporteService
 from PIL import Image, ImageTk, ImageEnhance, ImageDraw
+import services.ApiPaises
 
 
 class LibraryApp(tk.Tk):
@@ -18,11 +19,11 @@ class LibraryApp(tk.Tk):
         self.db = db
         self.title("BibliotecApp")
         self.geometry("1950x1024")
-        self.iconbitmap(r"C:/Users/Usuario/Desktop/Facultad/TERCER AÑO/DAO/TP/TPI-DAO-4K1/src/images/logo_app.ico")
+        self.iconbitmap(r"C:/Users/Usuario/General/Archivos Fran Dell/Ingeniería en Sistemas/4° Cuarto Año/Desarrollo de Aplicaciones con Objetos (DAO)/TPI-DAO-4K1/src/images/logo_app.ico")
 
 
         # Cargar y colocar la imagen de fondo con transparencia
-        background_image = Image.open(r"C:/Users/Usuario/Desktop/Facultad/TERCER AÑO/DAO/TP/TPI-DAO-4K1/src/images/fondo.jpg")
+        background_image = Image.open(r"C:/Users/Usuario/General/Archivos Fran Dell/Ingeniería en Sistemas/4° Cuarto Año/Desarrollo de Aplicaciones con Objetos (DAO)/TPI-DAO-4K1/src/images/fondo.jpg")
         background_image = background_image.resize((1950, 1024), Image.LANCZOS)
         background_image = self.apply_transparency(background_image, alpha=0.4)
         self.background_photo = ImageTk.PhotoImage(background_image)
@@ -77,6 +78,16 @@ class LibraryApp(tk.Tk):
         ventana_autores = tk.Toplevel(self)
         ventana_autores.title("Gestión de Autores")
         ventana_autores.geometry("900x600")
+        ventana_autores.iconbitmap(r"C:/Users/Usuario/General/Archivos Fran Dell/Ingeniería en Sistemas/4° Cuarto Año/Desarrollo de Aplicaciones con Objetos (DAO)/TPI-DAO-4K1/src/images/logo_app.ico")
+
+        pantalla_ancho = ventana_autores.winfo_screenwidth()
+        pantalla_alto = ventana_autores.winfo_screenheight()
+
+        # Calcular las coordenadas para centrar la ventana
+        x = (pantalla_ancho // 2) - (900 // 2)
+        y = (pantalla_alto // 2) - (600 // 2)
+
+        ventana_autores.geometry(f"{900}x{600}+{x}+{y}")
 
         # Frame principal
         main_frame = ttk.Frame(ventana_autores, padding="10")
@@ -114,7 +125,7 @@ class LibraryApp(tk.Tk):
             ttk.Label(form_frame, text=label_text).grid(row=0, column=col, padx=5, pady=5)
 
             if var_name == 'nacionalidad':
-                nacionalidades = ["Argentina", "Chile", "Brasil", "Uruguay", "Paraguay", "Bolivia", "Perú"]
+                nacionalidades = services.ApiPaises.obtener_nombres_de_paises()
                 ttk.Combobox(form_frame, textvariable=self.vars_autor[var_name], values=nacionalidades, state="readonly").grid(
                     row=0, column=col+1, padx=5, pady=5
                 )
@@ -256,6 +267,17 @@ class LibraryApp(tk.Tk):
         ventana_usuarios = tk.Toplevel(self)
         ventana_usuarios.title("Usuarios")
         ventana_usuarios.geometry("800x600")
+        ventana_usuarios.iconbitmap(r"C:/Users/Usuario/General/Archivos Fran Dell/Ingeniería en Sistemas/4° Cuarto Año/Desarrollo de Aplicaciones con Objetos (DAO)/TPI-DAO-4K1/src/images/logo_app.ico")
+
+
+        pantalla_ancho = ventana_usuarios.winfo_screenwidth()
+        pantalla_alto = ventana_usuarios.winfo_screenheight()
+
+        # Calcular las coordenadas para centrar la ventana
+        x = (pantalla_ancho // 2) - (800 // 2)
+        y = (pantalla_alto // 2) - (600 // 2)
+
+        ventana_usuarios.geometry(f"{800}x{600}+{x}+{y}")
         
         # Variables para los campos del usuario
         self.vars_usuario = {
@@ -428,6 +450,17 @@ class LibraryApp(tk.Tk):
         ventana_libros = tk.Toplevel(self)
         ventana_libros.title("Gestión de Libros")
         ventana_libros.geometry("1000x600")
+        ventana_libros.iconbitmap(r"C:/Users/Usuario/General/Archivos Fran Dell/Ingeniería en Sistemas/4° Cuarto Año/Desarrollo de Aplicaciones con Objetos (DAO)/TPI-DAO-4K1/src/images/logo_app.ico")
+
+
+        pantalla_ancho = ventana_libros.winfo_screenwidth()
+        pantalla_alto = ventana_libros.winfo_screenheight()
+
+        # Calcular las coordenadas para centrar la ventana
+        x = (pantalla_ancho // 2) - (1000 // 2)
+        y = (pantalla_alto // 2) - (600 // 2)
+
+        ventana_libros.geometry(f"{1000}x{600}+{x}+{y}")
 
         # Frame principal
         main_frame = ttk.Frame(ventana_libros, padding="10")
@@ -628,12 +661,6 @@ class LibraryApp(tk.Tk):
         for var in self.vars_libro.values():
             var.set("")
 
-    def abrir_reportes(self):
-        ventana_reportes = tk.Toplevel(self)
-        ventana_reportes.title("Reportes")
-        ventana_reportes.geometry("400x300")
-        tk.Label(ventana_reportes, text="Gestión de Reportes", font=("Helvetica", 16)).pack(pady=20)
-        tk.Button(ventana_reportes, text="Volver", command=ventana_reportes.destroy).pack(pady=10)
 
     def salir(self):
         self.destroy()
@@ -745,6 +772,9 @@ class LibraryApp(tk.Tk):
         # Crear la ventana
         ventana_reportes = tk.Toplevel(self)
         ventana_reportes.title("Reportes")
+
+        ventana_reportes.iconbitmap(r"C:/Users/Usuario/General/Archivos Fran Dell/Ingeniería en Sistemas/4° Cuarto Año/Desarrollo de Aplicaciones con Objetos (DAO)/TPI-DAO-4K1/src/images/logo_app.ico")
+
         
         # Establecer tamaño de la ventana
         ancho_ventana = 975

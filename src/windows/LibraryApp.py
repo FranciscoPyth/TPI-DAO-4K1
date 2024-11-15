@@ -1,5 +1,6 @@
 import tkinter as tk
 from tkinter import ttk
+from tkinter import messagebox
 from services.BibliotecaService import BibliotecaService
 from classes.Autor import Autor
 from classes.Libro import Libro
@@ -18,10 +19,11 @@ class LibraryApp(tk.Tk):
         self.db = db
         self.title("BibliotecApp")
         self.geometry("1950x1024")
-        self.iconbitmap("C:/Users/Usuario/General/Archivos Fran Dell/Ingeniería en Sistemas/4° Cuarto Año/Desarrollo de Aplicaciones con Objetos (DAO)/TPI-DAO-4K1/src/images/logo_app.ico")
+        self.iconbitmap(r"C:/Users/Usuario/Desktop/Facultad/TERCER AÑO/DAO/TP/TPI-DAO-4K1/src/images/logo_app.ico")
+
 
         # Cargar y colocar la imagen de fondo con transparencia
-        background_image = Image.open("C:/Users/Usuario/General/Archivos Fran Dell/Ingeniería en Sistemas/4° Cuarto Año/Desarrollo de Aplicaciones con Objetos (DAO)/TPI-DAO-4K1/src/images/fondo.jpg")
+        background_image = Image.open(r"C:/Users/Usuario/Desktop/Facultad/TERCER AÑO/DAO/TP/TPI-DAO-4K1/src/images/fondo.jpg")
         background_image = background_image.resize((1950, 1024), Image.LANCZOS)
         background_image = self.apply_transparency(background_image, alpha=0.4)
         self.background_photo = ImageTk.PhotoImage(background_image)
@@ -74,11 +76,182 @@ class LibraryApp(tk.Tk):
     # Métodos para abrir cada ventana
     def abrir_autores(self):
         ventana_autores = tk.Toplevel(self)
-        ventana_autores.title("Autores")
-        ventana_autores.geometry("400x300")
-        tk.Label(ventana_autores, text="Gestión de Autores", font=("Helvetica", 16)).pack(pady=20)
-        tk.Button(ventana_autores, text="Volver", command=ventana_autores.destroy).pack(pady=10)
+        ventana_autores.title("Gestión de Autores")
+        ventana_autores.geometry("900x600")
 
+        # Frame principal
+        main_frame = ttk.Frame(ventana_autores, padding="10")
+        main_frame.pack(fill=tk.BOTH, expand=True)
+
+        # Frame para el formulario
+        form_frame = ttk.LabelFrame(main_frame, text="Datos del Autor", padding="10")
+        form_frame.pack(fill=tk.X, padx=5, pady=5)
+
+        # Variables del formulario
+        self.vars_autor = {
+            'id': tk.StringVar(),
+            'nombre': tk.StringVar(),
+            'apellido': tk.StringVar(),
+            'telefono': tk.StringVar(),
+            'nacionalidad': tk.StringVar()
+        }
+
+        # Funciones de validación
+        def solo_letras(char):
+            return char.isalpha() or char.isspace()  # Permite letras y espacios
+
+        def solo_numeros(char):
+            return char.isdigit()  # Permite solo números
+
+        # Crear campos del formulario
+        campos = [
+            ("Nombre:", 'nombre', 0),
+            ("Apellido:", 'apellido', 2),
+            ("Teléfono:", 'telefono', 4),
+            ("Nacionalidad:", 'nacionalidad', 6)
+        ]
+
+        for label_text, var_name, col in campos:
+            ttk.Label(form_frame, text=label_text).grid(row=0, column=col, padx=5, pady=5)
+
+            if var_name == 'nacionalidad':
+                nacionalidades = ["Argentina", "Chile", "Brasil", "Uruguay", "Paraguay", "Bolivia", "Perú"]
+                ttk.Combobox(form_frame, textvariable=self.vars_autor[var_name], values=nacionalidades, state="readonly").grid(
+                    row=0, column=col+1, padx=5, pady=5
+                )
+            else:
+                entry = ttk.Entry(form_frame, textvariable=self.vars_autor[var_name])
+                
+                # Configurar validación
+                if var_name in ('nombre', 'apellido'):
+                    # Validación para solo letras
+                    entry.config(validate="key", validatecommand=(ventana_autores.register(solo_letras), '%S'))
+                elif var_name == 'telefono':
+                    # Validación para solo números
+                    entry.config(validate="key", validatecommand=(ventana_autores.register(solo_numeros), '%S'))
+
+                entry.grid(row=0, column=col+1, padx=5, pady=5)
+
+        # Frame para botones
+        button_frame = ttk.Frame(form_frame)
+        button_frame.grid(row=1, column=0, columnspan=8, pady=10)
+
+        # Botones
+        ttk.Button(button_frame, text="Guardar", command=lambda: self._guardar_autor(tree)).pack(side=tk.LEFT, padx=5)
+        ttk.Button(button_frame, text="Actualizar", command=lambda: self._actualizar_autor(tree)).pack(side=tk.LEFT, padx=5)
+        ttk.Button(button_frame, text="Eliminar", command=lambda: self._eliminar_autor(tree)).pack(side=tk.LEFT, padx=5)
+        ttk.Button(button_frame, text="Limpiar", command=self._limpiar_campos_autor).pack(side=tk.LEFT, padx=5)
+
+        # Frame para la tabla
+        table_frame = ttk.Frame(main_frame)
+        table_frame.pack(fill=tk.BOTH, expand=True, padx=5, pady=5)
+
+        # Crear tabla
+        columns = ("ID", "Nombre", "Apellido", "Teléfono", "Nacionalidad")
+        tree = ttk.Treeview(table_frame, columns=columns, show="headings")
+
+        # Configurar columnas
+        for col in columns:
+            tree.heading(col, text=col)
+            tree.column(col, width=100)
+
+        # Agregar scrollbar
+        scrollbar = ttk.Scrollbar(table_frame, orient=tk.VERTICAL, command=tree.yview)
+        scrollbar.pack(side=tk.RIGHT, fill=tk.Y)
+        tree.configure(yscrollcommand=scrollbar.set)
+        tree.pack(fill=tk.BOTH, expand=True, side=tk.LEFT)
+
+        # Vincular evento de selección
+        tree.bind('<<TreeviewSelect>>', lambda event: self._seleccionar_autor(event, tree))
+
+        # Cargar datos iniciales
+        self._cargar_autores(tree)
+
+    def _cargar_autores(self, tree):
+        """Carga los autores en la tabla"""
+        # Limpiar la tabla
+        for item in tree.get_children():
+            tree.delete(item)
+        
+        # Obtener autores
+        autor_service = AutorService(self.db)
+        autores = autor_service.get_all_autores()
+        
+        # Insertar autores en la tabla
+        for autor in autores:
+            tree.insert("", tk.END, values=autor)
+
+    def _guardar_autor(self, tree):
+        """Guarda un nuevo autor"""
+        try:
+            autor = Autor(
+                nombre=self.vars_autor['nombre'].get(),
+                apellido=self.vars_autor['apellido'].get(),
+                telefono=self.vars_autor['telefono'].get(),
+                nacionalidad=self.vars_autor['nacionalidad'].get()
+            )
+            autor_service = AutorService(self.db)
+            autor_service.create_autor(autor)
+            self._limpiar_campos_autor()
+            self._cargar_autores(tree)
+            messagebox.showinfo("Éxito", "Autor guardado correctamente")
+        except Exception as e:
+            messagebox.showerror("Error", str(e))
+
+    def _actualizar_autor(self, tree):
+        """Actualiza un autor existente"""
+        if not self.vars_autor['id'].get():
+            messagebox.showwarning("Advertencia", "Por favor, seleccione un autor para actualizar")
+            return
+        
+        try:
+            autor_service = AutorService(self.db)
+            autor_data = {
+                'nombre': self.vars_autor['nombre'].get(),
+                'apellido': self.vars_autor['apellido'].get(),
+                'telefono': self.vars_autor['telefono'].get(),
+                'nacionalidad': self.vars_autor['nacionalidad'].get()
+            }
+            autor_service.update_autor(self.vars_autor['id'].get(), autor_data)
+            self._limpiar_campos_autor()
+            self._cargar_autores(tree)
+            messagebox.showinfo("Éxito", "Autor actualizado correctamente")
+        except Exception as e:
+            messagebox.showerror("Error", str(e))
+
+    def _eliminar_autor(self, tree):
+        """Elimina un autor"""
+        if not self.vars_autor['id'].get():
+            messagebox.showwarning("Advertencia", "Por favor, seleccione un autor para eliminar")
+            return
+        
+        if messagebox.askyesno("Confirmar", "¿Está seguro de eliminar este autor?"):
+            try:
+                autor_service = AutorService(self.db)
+                autor_service.delete_autor(self.vars_autor['id'].get())
+                self._limpiar_campos_autor()
+                self._cargar_autores(tree)
+                messagebox.showinfo("Éxito", "Autor eliminado correctamente")
+            except Exception as e:
+                messagebox.showerror("Error", str(e))
+
+    def _seleccionar_autor(self, event, tree):
+        """Maneja la selección de un autor en la tabla"""
+        selected_item = tree.selection()
+        if selected_item:
+            item = tree.item(selected_item[0])
+            autor = item['values']
+            self.vars_autor['id'].set(autor[0])
+            self.vars_autor['nombre'].set(autor[1])
+            self.vars_autor['apellido'].set(autor[2])
+            self.vars_autor['telefono'].set(autor[3])
+            self.vars_autor['nacionalidad'].set(autor[4])
+
+    def _limpiar_campos_autor(self):
+        """Limpia los campos del formulario"""
+        for var in self.vars_autor.values():
+            var.set("")
+    
     def abrir_usuarios(self):
         ventana_usuarios = tk.Toplevel(self)
         ventana_usuarios.title("Usuarios")

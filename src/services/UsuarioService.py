@@ -2,93 +2,147 @@ from data.Database import DatabaseSingleton
 from classes.Usuario import Usuario, Estudiante, Profesor
 
 class UsuarioService:
-
-    #Instancia de la BD
     def __init__(self, db):
         self.db = db
 
-    #Buscar usuario segun su ID
-    def findUsuarioById(self, usuario: Usuario):
-        query= """
-        SELECT U.id FROM usuarios U WHERE U.id = ?
-        """
-        params = (usuario.id,)
-        return self.db.fetch_query(query, params, single=True)
-
-    
-    #Buscar usuario segun su Teléfono
-    def findUsuarioByDni(self, usuario: Usuario):
+    def get_all_usuarios(self):
+        """Obtiene todos los usuarios de la base de datos ordenados por nombre"""
         query = """
-        SELECT * FROM usuarios U WHERE U.telefono = ?
+        SELECT id, nombre, apellido, tipo_usuario, direccion, telefono 
+        FROM usuarios
+        ORDER BY nombre, apellido
         """
-        params = (usuario.telefono,)
-        return self.db.fetch_query(query, params, single=True)
-    
+        return self.db.fetch_query(query)
 
-    #Detectar el tipo de usuario
-    def getTipoUsuario(self, usuario: Usuario):
+    def find_usuario_by_id(self, usuario_id):
+        """Busca un usuario por su ID"""
+        query = """
+        SELECT id, nombre, apellido, tipo_usuario, direccion, telefono 
+        FROM usuarios 
+        WHERE id = ?
+        """
+        return self.db.fetch_query(query, (usuario_id,), single=True)
+
+    def find_usuario_by_telefono(self, telefono):
+        """Busca un usuario por su teléfono"""
+        query = """
+        SELECT id, nombre, apellido, tipo_usuario, direccion, telefono 
+        FROM usuarios 
+        WHERE telefono = ?
+        """
+        return self.db.fetch_query(query, (telefono,), single=True)
+
+    def get_tipo_usuario(self, usuario: Usuario):
+        """Detecta el tipo de usuario"""
         if isinstance(usuario, Estudiante):
             return 'estudiante'
         elif isinstance(usuario, Profesor):
             return 'profesor'
         else:
-            raise ValueError("El tipo de usuario no es valido")
-        
-    
-    #Verificar si el usuario tiene prestamos disponbles
-    def tienePrestamosUsuario(self, usuario : Usuario):
-        print("--------CONSULTA DE DISPONIBILIDAD DE PRESTAMOS-------------")
-        
-        tipo_usuario = self.getTipoUsuario(usuario)
+            raise ValueError("El tipo de usuario no es válido")
+
+    def tiene_prestamos_disponibles(self, usuario: Usuario):
+        """Verifica si el usuario tiene préstamos disponibles"""
+        tipo_usuario = self.get_tipo_usuario(usuario)
         
         query = """
-        SELECT COUNT(*) FROM prestamos P JOIN usuarios U ON (P.id_usuario = U.id) WHERE U.tipo_usuario = ? AND P.fecha_devolucion_real IS NULL       
+        SELECT COUNT(*) 
+        FROM prestamos P 
+        JOIN usuarios U ON (P.id_usuario = U.id) 
+        WHERE U.tipo_usuario = ? AND P.fecha_devolucion_real IS NULL       
         """
         parameters = (tipo_usuario,)
-        cantPrestamosUsuario = self.db.fetch_query(query, parameters, single=True)
+        cant_prestamos = self.db.fetch_query(query, parameters, single=True)[0]
 
-        if(tipo_usuario == 'estudiante' and (cantPrestamosUsuario[0] >= 3 )):
-            print("[ESTUDIANTE] - Se pasa de los 3 prestamos para estudiante")
-            return False
-        elif(tipo_usuario == 'profesor' and (cantPrestamosUsuario[0] >= 5 )):
-            print("[PROFESOR] - Se pasA de los 5 prestamos para profesor")
-            return False
-        elif(tipo_usuario == 'estudiante'):
-            print("[ESTUDIANTE] - Tiene prestamos disponibles")
-            return True
-        elif(tipo_usuario == 'profesor'):
-            print("[PROFESOR] - Tiene prestamos disponibles")
-            return True
+        limite_prestamos = 5 if tipo_usuario == 'profesor' else 3
+        return cant_prestamos < limite_prestamos
 
-        
-    #REGISTRO DE UN NUEVO USUARIO
     def registrar_usuario(self, usuario: Usuario):
-        print("--------REGISTRO DE USUARIO-------------")
+        """Registra un nuevo usuario en la base de datos"""
+        # Verificar si ya existe un usuario con ese teléfono
+        if self.find_usuario_by_telefono(usuario.telefono):
+            raise ValueError(f"Ya existe un usuario con el teléfono {usuario.telefono}")
 
-        #Revisamos si el usuario que se intenta agregar a la BD ya está ingresado
-        usuarioEncontrado = self.findUsuarioByDni(usuario)
+        tipo_usuario = self.get_tipo_usuario(usuario)
 
-        if(not usuarioEncontrado):
-            print(f"El usuario {usuario.nombre} con telefono: {usuario.telefono} NO SE ENCUENTRA en la base de datos - se porcede a su registro")
+        query = """
+        INSERT INTO usuarios (nombre, apellido, tipo_usuario, direccion, telefono)
+        VALUES (?, ?, ?, ?, ?)
+        """
+        params = (
+            usuario.nombre,
+            usuario.apellido,
+            tipo_usuario,
+            usuario.direccion,
+            usuario.telefono
+        )
+        
+        try:
+            self.db.execute_query(query, params)
+            usuario.id = self.db.cursor.lastrowid
+            return usuario.id
+        except Exception as e:
+            raise Exception(f"Error al registrar usuario: {str(e)}")
 
-            # Detectamos el tipo de usuario en base a la clase
-            tipo_usuario = self.getTipoUsuario(usuario)
+    def actualizar_usuario(self, usuario_id: int, datos_usuario: dict):
+        """Actualiza los datos de un usuario existente"""
+        # Verificar si el usuario existe
+        if not self.find_usuario_by_id(usuario_id):
+            raise ValueError(f"No existe un usuario con el ID {usuario_id}")
 
-            query = """
-            INSERT INTO usuarios (nombre, apellido, tipo_usuario, direccion, telefono)
-            VALUES (?, ?, ?, ?, ?)
-            """
-            params = (usuario.nombre, usuario.apellido, tipo_usuario, usuario.direccion, usuario.telefono)
-            
-            try:
-                # Ejecuta la consulta y realiza el commit
-                self.db.execute_query(query, params)
-                
-                # Obtiene el id generado por SQLite y lo asigna al objeto Usuario
-                usuario.id = self.db.cursor.lastrowid
-                print(f"-----{tipo_usuario.capitalize()} registrado con exito-----")
-                
-            except Exception as e:
-                print(f"Error al registrar usuario: {e}")
-        else:
-            print(f"El usuario con Telefono: {usuario.telefono} ya se encuentra en la BD")
+        # Verificar si el nuevo teléfono ya existe en otro usuario
+        usuario_existente = self.find_usuario_by_telefono(datos_usuario['telefono'])
+        if usuario_existente and usuario_existente[0] != usuario_id:
+            raise ValueError(f"Ya existe otro usuario con el teléfono {datos_usuario['telefono']}")
+
+        query = """
+        UPDATE usuarios 
+        SET nombre=?, apellido=?, tipo_usuario=?, direccion=?, telefono=?
+        WHERE id=?
+        """
+        params = (
+            datos_usuario['nombre'],
+            datos_usuario['apellido'],
+            datos_usuario['tipo_usuario'],
+            datos_usuario['direccion'],
+            datos_usuario['telefono'],
+            usuario_id
+        )
+        
+        try:
+            self.db.execute_query(query, params)
+        except Exception as e:
+            raise Exception(f"Error al actualizar usuario: {str(e)}")
+
+    def eliminar_usuario(self, usuario_id: int):
+        """Elimina un usuario por su ID"""
+        # Verificar si el usuario existe
+        if not self.find_usuario_by_id(usuario_id):
+            raise ValueError(f"No existe un usuario con el ID {usuario_id}")
+
+        # Verificar si el usuario tiene préstamos activos
+        query_prestamos = """
+        SELECT COUNT(*) 
+        FROM prestamos 
+        WHERE id_usuario = ? AND fecha_devolucion_real IS NULL
+        """
+        prestamos_activos = self.db.fetch_query(query_prestamos, (usuario_id,), single=True)[0]
+        
+        if prestamos_activos > 0:
+            raise ValueError("No se puede eliminar el usuario porque tiene préstamos activos")
+
+        query = "DELETE FROM usuarios WHERE id=?"
+        try:
+            self.db.execute_query(query, (usuario_id,))
+        except Exception as e:
+            raise Exception(f"Error al eliminar usuario: {str(e)}")
+
+    def crear_usuario_desde_datos(self, datos: dict):
+        """Crea una instancia de Usuario (Estudiante o Profesor) a partir de un diccionario de datos"""
+        clase_usuario = Estudiante if datos['tipo_usuario'] == 'estudiante' else Profesor
+        return clase_usuario(
+            nombre=datos['nombre'],
+            apellido=datos['apellido'],
+            direccion=datos['direccion'],
+            telefono=datos['telefono']
+        )

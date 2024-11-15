@@ -13,12 +13,7 @@ from datetime import date
 
 def initializer_db(db):
     # Lista de consultas separadas
-    drop_table_queries = [
-        "DROP TABLE IF EXISTS autores",
-        "DROP TABLE IF EXISTS usuarios",
-        "DROP TABLE IF EXISTS libros",
-        "DROP TABLE IF EXISTS prestamos"
-    ]
+    
 
     create_table_queries = [
         """
@@ -65,15 +60,6 @@ def initializer_db(db):
         """
     ]
 
-    # Eliminar tablas si ya existen
-    for query in drop_table_queries:
-        try:
-            db.execute_query(query)
-            print("Tabla eliminada exitosamente")
-        except Exception as e:
-            print(f"Error al eliminar la tabla: {e}")
-
-
     # Ejecutar cada consulta individualmente
     for query in create_table_queries:
         try:
@@ -86,7 +72,7 @@ def initializer_db(db):
 def main():
     db = DatabaseSingleton()
     initializer_db(db) 
- 
+    
     app = LibraryApp(db)
     app.mainloop()
 

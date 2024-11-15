@@ -4,7 +4,8 @@ from tkinter import messagebox
 from services.BibliotecaService import BibliotecaService
 from classes.Autor import Autor
 from classes.Libro import Libro
-from classes.Usuario import Usuario
+from classes.Usuario import Usuario, Estudiante, Profesor
+from services.UsuarioService import UsuarioService
 from classes.Prestamo import Prestamo
 from services.LibroService import LibroService
 from services.AutorService import AutorService
@@ -19,11 +20,11 @@ class LibraryApp(tk.Tk):
         self.db = db
         self.title("BibliotecApp")
         self.geometry("1950x1024")
-        self.iconbitmap(r"C:/Users/Usuario/Desktop/Facultad/TERCER AÑO/DAO/TP/TPI-DAO-4K1/src/images/logo_app.ico")
+        self.iconbitmap(r"C:/Users/Usuario/Desktop/TPDAO2/TPI-DAO-4K1/src/images/logo_app.ico")
 
 
         # Cargar y colocar la imagen de fondo con transparencia
-        background_image = Image.open(r"C:/Users/Usuario/Desktop/Facultad/TERCER AÑO/DAO/TP/TPI-DAO-4K1/src/images/fondo.jpg")
+        background_image = Image.open(r"C:/Users/Usuario/Desktop/TPDAO2/TPI-DAO-4K1/src/images/fondo.jpg")
         background_image = background_image.resize((1950, 1024), Image.LANCZOS)
         background_image = self.apply_transparency(background_image, alpha=0.4)
         self.background_photo = ImageTk.PhotoImage(background_image)
@@ -253,12 +254,178 @@ class LibraryApp(tk.Tk):
             var.set("")
     
     def abrir_usuarios(self):
+        """Abre la ventana de gestión de usuarios"""
         ventana_usuarios = tk.Toplevel(self)
         ventana_usuarios.title("Usuarios")
-        ventana_usuarios.geometry("400x300")
-        tk.Label(ventana_usuarios, text="Gestión de Usuarios", font=("Helvetica", 16)).pack(pady=20)
-        tk.Button(ventana_usuarios, text="Volver", command=ventana_usuarios.destroy).pack(pady=10)
+        ventana_usuarios.geometry("800x600")
+        
+        # Variables para los campos del usuario
+        self.vars_usuario = {
+            'id': tk.StringVar(),
+            'nombre': tk.StringVar(),
+            'apellido': tk.StringVar(),
+            'tipo_usuario': tk.StringVar(),
+            'direccion': tk.StringVar(),
+            'telefono': tk.StringVar()
+        }
+        
+        # Frame para el formulario
+        frame_form = ttk.LabelFrame(ventana_usuarios, text="Datos del Usuario")
+        frame_form.pack(padx=10, pady=10, fill="x")
+        
+        # Campos del formulario
+        ttk.Label(frame_form, text="Nombre:").grid(row=0, column=0, padx=5, pady=5)
+        ttk.Entry(frame_form, textvariable=self.vars_usuario['nombre']).grid(row=0, column=1, padx=5, pady=5)
+        
+        ttk.Label(frame_form, text="Apellido:").grid(row=0, column=2, padx=5, pady=5)
+        ttk.Entry(frame_form, textvariable=self.vars_usuario['apellido']).grid(row=0, column=3, padx=5, pady=5)
+        
+        ttk.Label(frame_form, text="Tipo Usuario:").grid(row=1, column=0, padx=5, pady=5)
+        tipo_combo = ttk.Combobox(frame_form, textvariable=self.vars_usuario['tipo_usuario'], values=['Estudiante', 'Profesor'])
+        tipo_combo.grid(row=1, column=1, padx=5, pady=5)
+        
+        ttk.Label(frame_form, text="Dirección:").grid(row=1, column=2, padx=5, pady=5)
+        ttk.Entry(frame_form, textvariable=self.vars_usuario['direccion']).grid(row=1, column=3, padx=5, pady=5)
+        
+        ttk.Label(frame_form, text="Teléfono:").grid(row=2, column=0, padx=5, pady=5)
+        ttk.Entry(frame_form, textvariable=self.vars_usuario['telefono']).grid(row=2, column=1, padx=5, pady=5)
+        
+        # Frame para botones
+        frame_botones = ttk.Frame(ventana_usuarios)
+        frame_botones.pack(pady=10)
+        
+        # Botones CRUD
+        ttk.Button(frame_botones, text="Guardar", command=lambda: self._guardar_usuario(tree)).pack(side=tk.LEFT, padx=5)
+        ttk.Button(frame_botones, text="Actualizar", command=lambda: self._actualizar_usuario(tree)).pack(side=tk.LEFT, padx=5)
+        ttk.Button(frame_botones, text="Eliminar", command=lambda: self._eliminar_usuario(tree)).pack(side=tk.LEFT, padx=5)
+        ttk.Button(frame_botones, text="Limpiar", command=self._limpiar_campos_usuario).pack(side=tk.LEFT, padx=5)
+        
+        # Tabla de usuarios
+        columns = ('ID', 'Nombre', 'Apellido', 'Tipo', 'Dirección', 'Teléfono')
+        tree = ttk.Treeview(ventana_usuarios, columns=columns, show='headings')
+        
+        # Configurar las columnas
+        for col in columns:
+            tree.heading(col, text=col)
+            tree.column(col, width=100)
+        
+        tree.pack(padx=10, pady=10, fill="both", expand=True)
+        
+        # Scrollbar
+        scrollbar = ttk.Scrollbar(ventana_usuarios, orient=tk.VERTICAL, command=tree.yview)
+        scrollbar.pack(side=tk.RIGHT, fill=tk.Y)
+        tree.configure(yscrollcommand=scrollbar.set)
+        
+        # Vincular evento de selección
+        tree.bind('<<TreeviewSelect>>', lambda event: self._seleccionar_usuario(event, tree))
+        
+        # Cargar datos iniciales
+        self._cargar_usuarios(tree)
 
+    def _cargar_usuarios(self, tree):
+        """Carga los usuarios en la tabla"""
+        # Limpiar la tabla
+        for item in tree.get_children():
+            tree.delete(item)
+        
+        # Obtener usuarios
+        usuario_service = UsuarioService(self.db)
+        query = "SELECT id, nombre, apellido, tipo_usuario, direccion, telefono FROM usuarios"
+        usuarios = self.db.fetch_query(query)
+        
+        # Insertar usuarios en la tabla
+        for usuario in usuarios:
+            tree.insert("", tk.END, values=usuario)
+
+    def _guardar_usuario(self, tree):
+        """Guarda un nuevo usuario"""
+        try:
+            tipo = self.vars_usuario['tipo_usuario'].get()
+            if tipo == 'estudiante':
+                usuario = Estudiante(
+                    nombre=self.vars_usuario['nombre'].get(),
+                    apellido=self.vars_usuario['apellido'].get(),
+                    direccion=self.vars_usuario['direccion'].get(),
+                    telefono=self.vars_usuario['telefono'].get()
+                )
+            else:
+                usuario = Profesor(
+                    nombre=self.vars_usuario['nombre'].get(),
+                    apellido=self.vars_usuario['apellido'].get(),
+                    direccion=self.vars_usuario['direccion'].get(),
+                    telefono=self.vars_usuario['telefono'].get()
+                )
+            
+            usuario_service = UsuarioService(self.db)
+            usuario_service.registrar_usuario(usuario)
+            self._limpiar_campos_usuario()
+            self._cargar_usuarios(tree)
+            messagebox.showinfo("Éxito", "Usuario guardado correctamente")
+        except Exception as e:
+            messagebox.showerror("Error", str(e))
+
+    def _actualizar_usuario(self, tree):
+        """Actualiza un usuario existente"""
+        if not self.vars_usuario['id'].get():
+            messagebox.showwarning("Advertencia", "Por favor, seleccione un usuario para actualizar")
+            return
+        
+        try:
+            query = """
+            UPDATE usuarios 
+            SET nombre=?, apellido=?, tipo_usuario=?, direccion=?, telefono=?
+            WHERE id=?
+            """
+            params = (
+                self.vars_usuario['nombre'].get(),
+                self.vars_usuario['apellido'].get(),
+                self.vars_usuario['tipo_usuario'].get(),
+                self.vars_usuario['direccion'].get(),
+                self.vars_usuario['telefono'].get(),
+                self.vars_usuario['id'].get()
+            )
+            self.db.execute_query(query, params)
+            self._limpiar_campos_usuario()
+            self._cargar_usuarios(tree)
+            messagebox.showinfo("Éxito", "Usuario actualizado correctamente")
+        except Exception as e:
+            messagebox.showerror("Error", str(e))
+
+    def _eliminar_usuario(self, tree):
+        """Elimina un usuario"""
+        if not self.vars_usuario['id'].get():
+            messagebox.showwarning("Advertencia", "Por favor, seleccione un usuario para eliminar")
+            return
+        
+        if messagebox.askyesno("Confirmar", "¿Está seguro de eliminar este usuario?"):
+            try:
+                query = "DELETE FROM usuarios WHERE id=?"
+                self.db.execute_query(query, (self.vars_usuario['id'].get(),))
+                self._limpiar_campos_usuario()
+                self._cargar_usuarios(tree)
+                messagebox.showinfo("Éxito", "Usuario eliminado correctamente")
+            except Exception as e:
+                messagebox.showerror("Error", str(e))
+
+    def _seleccionar_usuario(self, event, tree):
+        """Maneja la selección de un usuario en la tabla"""
+        selected_item = tree.selection()
+        if selected_item:
+            item = tree.item(selected_item[0])
+            usuario = item['values']
+            self.vars_usuario['id'].set(usuario[0])
+            self.vars_usuario['nombre'].set(usuario[1])
+            self.vars_usuario['apellido'].set(usuario[2])
+            self.vars_usuario['tipo_usuario'].set(usuario[3])
+            self.vars_usuario['direccion'].set(usuario[4])
+            self.vars_usuario['telefono'].set(usuario[5])
+
+    def _limpiar_campos_usuario(self):
+        """Limpia los campos del formulario"""
+        for var in self.vars_usuario.values():
+            var.set("")
+
+    
     def abrir_libros(self):
         ventana_libros = tk.Toplevel(self)
         ventana_libros.title("Libros")

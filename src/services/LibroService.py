@@ -1,80 +1,73 @@
 from classes.Libro import Libro
-from services.AutorService import *
 
 class LibroService:
-
-    #Instancia de la BD
     def __init__(self, db):
         self.db = db
 
-    #Buscar libro por codigo isbn:
-    def findLibroByIsdn(self, libro: Libro):
+    def get_all_libros(self):
+        """Obtiene todos los libros de la base de datos"""
         query = """
-        SELECT * FROM libros L WHERE L.isbn = ?
+        SELECT isbn, titulo, genero, ano_publicacion, id_autor, cantidad_disponible 
+        FROM libros
+        ORDER BY titulo
         """
-        paramsLibro = (libro.code_isbn,)
-        return self.db.fetch_query(query, paramsLibro, single=True)
-    
-    #Consultar la disponibilidad de un libro
-    def consultarDispinibilidadLibro(self, libro: Libro):
-        print("--------CONSULTA DE DISPONIBILIDAD-------------")
-        
-        query = """
-            SELECT COUNT(*) FROM libros L JOIN prestamos P ON L.isbn = P.isbn_libro WHERE L.isbn = ? AND P.fecha_devolucion_real IS NULL
-            """
-        params = (libro.code_isbn,)
-        cantPrestamosLibro= self.db.fetch_query(query, params, single=True)
-        
-        if(cantPrestamosLibro is None):
-            print(f"El libro {libro.titulo} esta disponible - Posee una disponibilidad de: {str(libro.cant_disponible)} unidades")
-            return True
-        elif(cantPrestamosLibro[0] < libro.cant_disponible):
-            print(f"El libro {libro.titulo} esta disponible - Posee una disponibilidad de: {str(libro.cant_disponible - cantPrestamosLibro[0])} unidades")
-            return True
-        else:
-            print(f"El libro {libro.titulo} no se encuentra disponible")
-            return False
+        return self.db.fetch_query(query)
 
-        
-    #REGISTRO DE UN NUEVO LIBRO
+    def findLibroByIsdn(self, libro: Libro):
+        """Busca un libro por su ISBN"""
+        query = "SELECT * FROM libros WHERE isbn = ?"
+        return self.db.fetch_query(query, (libro.code_isbn,), single=True)
+
     def registrar_libro(self, libro: Libro):
-        print("--------REGISTRO DE LIBRO-------------")
+        """Registra un nuevo libro en la base de datos"""
+        if self.findLibroByIsdn(libro):
+            raise ValueError(f"Ya existe un libro con el ISBN {libro.code_isbn}")
 
-        #Instancias de servicios
-        autor_service = AutorService(self.db)
+        if libro.anio_publicacion > 2024 or libro.cant_disponible <= 0:
+            raise ValueError("Año de publicación inválido o cantidad disponible debe ser mayor a 0")
 
-        #Verificar que el libro no está ingresado en la BD
-        libroEncontrado = self.findLibroByIsdn(libro)
+        query = """
+        INSERT INTO libros (isbn, titulo, genero, ano_publicacion, id_autor, cantidad_disponible)
+        VALUES (?, ?, ?, ?, ?, ?)
+        """
+        params = (libro.code_isbn, libro.titulo, libro.genero, libro.anio_publicacion, 
+                 libro.autor, libro.cant_disponible)
+        self.db.execute_query(query, params)
 
+    def update_libro(self, isbn, libro_data):
+        """Actualiza un libro existente"""
+        query = """
+        UPDATE libros 
+        SET titulo=?, genero=?, ano_publicacion=?, id_autor=?, cantidad_disponible=?
+        WHERE isbn=?
+        """
+        params = (
+            libro_data['titulo'],
+            libro_data['genero'],
+            libro_data['ano_publicacion'],
+            libro_data['id_autor'],
+            libro_data['cantidad_disponible'],
+            isbn
+        )
+        self.db.execute_query(query, params)
 
-        if(not libroEncontrado):
-            print(f"El libro {libro.titulo} con codigo isbn {libro.code_isbn} NO SE ENCUENTRA REGISTRADO en la base de datos")
-            
-            #Buscar al autor asociado al libro en la BD
-            autorEncontrado = autor_service.findAutorById(libro.autor)
-            
-            if(autorEncontrado):
-                print("Autor encontrado con exito")
+    def delete_libro(self, isbn):
+        """Elimina un libro por su ISBN"""
+        query = "DELETE FROM libros WHERE isbn=?"
+        self.db.execute_query(query, (isbn,))
 
-                if(libro.anio_publicacion <= 2024 and libro.cant_disponible > 0):
-                    print(f"El anio de publicacion del libro es: {libro.anio_publicacion} y se registra con: {libro.cant_disponible} ejemplares - Se procede al registro del libro")
-                    #Insertar el libro en la base de datos
-                    query = """
-                    INSERT INTO libros (isbn, titulo, genero, ano_publicacion, id_autor, cantidad_disponible)
-                    VALUES (?, ?, ?, ?, ?, ?)
-                    """
-                    params = (libro.code_isbn, libro.titulo, libro.genero, libro.anio_publicacion, libro.autor.id, libro.cant_disponible)
-                    
-                    try:
-                    # Ejecuta la consulta y realiza el commit
-                        self.db.execute_query(query, params)
-                        print(f"-----Libro registrado con exito-----")
-                        
-                    except Exception as e:
-                        print(f"Error al registrar libro: {e}")
-                else: print(f" ERROR - El año de publicacion ingresado del libro es: {libro.anio_publicacion} y se registra con: {libro.cant_disponible} ejemplares")
-            else:
-                print("No se encontro el autor.")
-        else:
-            print("El libro ya se encuentra registrado en la base de datos")
-            print(f"Se encontro el libro: {libroEncontrado}")
+    def consultarDispinibilidadLibro(self, libro: Libro):
+        """Consulta la disponibilidad de un libro"""
+        query = """
+        SELECT COUNT(*) FROM libros L 
+        JOIN prestamos P ON L.isbn = P.isbn_libro 
+        WHERE L.isbn = ? AND P.fecha_devolucion_real IS NULL
+        """
+        params = (libro.code_isbn,)
+        cantPrestamosLibro = self.db.fetch_query(query, params, single=True)
+        
+        if cantPrestamosLibro is None:
+            return True
+        elif cantPrestamosLibro[0] < libro.cant_disponible:
+            return True
+        return False

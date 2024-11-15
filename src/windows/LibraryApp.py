@@ -18,11 +18,11 @@ class LibraryApp(tk.Tk):
         self.db = db
         self.title("BibliotecApp")
         self.geometry("1950x1024")
-        self.iconbitmap(r"C:/Users/Usuario/General/Archivos Fran Dell/Ingeniería en Sistemas/4° Cuarto Año/Desarrollo de Aplicaciones con Objetos (DAO)/TPI-DAO-4K1/src/images/logo_app.ico")
+        self.iconbitmap(r"C:/Users/Usuario/Desktop/Facultad/TERCER AÑO/DAO/TP/TPI-DAO-4K1/src/images/logo_app.ico")
 
 
         # Cargar y colocar la imagen de fondo con transparencia
-        background_image = Image.open(r"C:/Users/Usuario/General/Archivos Fran Dell/Ingeniería en Sistemas/4° Cuarto Año/Desarrollo de Aplicaciones con Objetos (DAO)/TPI-DAO-4K1/src/images/fondo.jpg")
+        background_image = Image.open(r"C:/Users/Usuario/Desktop/Facultad/TERCER AÑO/DAO/TP/TPI-DAO-4K1/src/images/fondo.jpg")
         background_image = background_image.resize((1950, 1024), Image.LANCZOS)
         background_image = self.apply_transparency(background_image, alpha=0.4)
         self.background_photo = ImageTk.PhotoImage(background_image)
@@ -426,10 +426,207 @@ class LibraryApp(tk.Tk):
     
     def abrir_libros(self):
         ventana_libros = tk.Toplevel(self)
-        ventana_libros.title("Libros")
-        ventana_libros.geometry("400x300")
-        tk.Label(ventana_libros, text="Gestión de Libros", font=("Helvetica", 16)).pack(pady=20)
-        tk.Button(ventana_libros, text="Volver", command=ventana_libros.destroy).pack(pady=10)
+        ventana_libros.title("Gestión de Libros")
+        ventana_libros.geometry("1000x600")
+
+        # Frame principal
+        main_frame = ttk.Frame(ventana_libros, padding="10")
+        main_frame.pack(fill=tk.BOTH, expand=True)
+
+        # Frame para el formulario
+        form_frame = ttk.LabelFrame(main_frame, text="Datos del Libro", padding="10")
+        form_frame.pack(fill=tk.X, padx=5, pady=5)
+
+        # Variables del formulario
+        self.vars_libro = {
+            'isbn': tk.StringVar(),
+            'titulo': tk.StringVar(),
+            'genero': tk.StringVar(),
+            'ano_publicacion': tk.StringVar(),
+            'autor_id': tk.StringVar(),
+            'cantidad_disponible': tk.StringVar()
+        }
+
+        # Funciones de validación
+        def solo_numeros(char):
+            return char.isdigit()
+
+        def validar_isbn(char):
+            return char.isdigit() or char == '-'
+
+        # Crear campos del formulario
+        campos = [
+            ("ISBN:", 'isbn', 0),
+            ("Título:", 'titulo', 2),
+            ("Género:", 'genero', 4),
+            ("Año:", 'ano_publicacion', 0, 1),
+            ("Autor:", 'autor_id', 2, 1),
+            ("Cantidad:", 'cantidad_disponible', 4, 1)
+        ]
+
+        for campo in campos:
+            if len(campo) == 3:
+                label_text, var_name, col = campo
+                row = 0
+            else:
+                label_text, var_name, col, row = campo
+
+            ttk.Label(form_frame, text=label_text).grid(row=row, column=col, padx=5, pady=5)
+
+            if var_name == 'genero':
+                generos = ["Ficción", "No Ficción", "Novela", "Poesía", "Historia", "Ciencia", "Tecnología"]
+                ttk.Combobox(form_frame, textvariable=self.vars_libro[var_name], 
+                            values=generos, state="readonly").grid(
+                    row=row, column=col+1, padx=5, pady=5)
+            elif var_name == 'autor_id':
+                # Obtener lista de autores
+                autor_service = AutorService(self.db)
+                autores = autor_service.get_all_autores()
+                autores_lista = [f"{autor[0]} - {autor[1]} {autor[2]}" for autor in autores]
+                ttk.Combobox(form_frame, textvariable=self.vars_libro[var_name],
+                            values=autores_lista, state="readonly").grid(
+                    row=row, column=col+1, padx=5, pady=5)
+            else:
+                entry = ttk.Entry(form_frame, textvariable=self.vars_libro[var_name])
+                
+                # Configurar validación
+                if var_name in ('ano_publicacion', 'cantidad_disponible'):
+                    entry.config(validate="key", validatecommand=(ventana_libros.register(solo_numeros), '%S'))
+                elif var_name == 'isbn':
+                    entry.config(validate="key", validatecommand=(ventana_libros.register(validar_isbn), '%S'))
+
+                entry.grid(row=row, column=col+1, padx=5, pady=5)
+
+        # Frame para botones
+        button_frame = ttk.Frame(form_frame)
+        button_frame.grid(row=2, column=0, columnspan=8, pady=10)
+
+        # Botones
+        ttk.Button(button_frame, text="Guardar", command=lambda: self._guardar_libro(tree)).pack(side=tk.LEFT, padx=5)
+        ttk.Button(button_frame, text="Actualizar", command=lambda: self._actualizar_libro(tree)).pack(side=tk.LEFT, padx=5)
+        ttk.Button(button_frame, text="Eliminar", command=lambda: self._eliminar_libro(tree)).pack(side=tk.LEFT, padx=5)
+        ttk.Button(button_frame, text="Limpiar", command=self._limpiar_campos_libro).pack(side=tk.LEFT, padx=5)
+
+        # Frame para la tabla
+        table_frame = ttk.Frame(main_frame)
+        table_frame.pack(fill=tk.BOTH, expand=True, padx=5, pady=5)
+
+        # Crear tabla
+        columns = ("ISBN", "Título", "Género", "Año", "Autor", "Cantidad")
+        tree = ttk.Treeview(table_frame, columns=columns, show="headings")
+
+        # Configurar columnas
+        for col in columns:
+            tree.heading(col, text=col)
+            tree.column(col, width=100)
+
+        # Agregar scrollbar
+        scrollbar = ttk.Scrollbar(table_frame, orient=tk.VERTICAL, command=tree.yview)
+        scrollbar.pack(side=tk.RIGHT, fill=tk.Y)
+        tree.configure(yscrollcommand=scrollbar.set)
+        tree.pack(fill=tk.BOTH, expand=True, side=tk.LEFT)
+
+        # Vincular evento de selección
+        tree.bind('<<TreeviewSelect>>', lambda event: self._seleccionar_libro(event, tree))
+
+        # Cargar datos iniciales
+        self._cargar_libros(tree)
+
+    def _cargar_libros(self, tree):
+        """Carga los libros en la tabla"""
+        for item in tree.get_children():
+            tree.delete(item)
+        
+        libro_service = LibroService(self.db)
+        libros = libro_service.get_all_libros()
+        
+        for libro in libros:
+            # Obtener nombre del autor
+            autor_service = AutorService(self.db)
+            autor = autor_service.find_autor_by_id(libro[4])
+            nombre_autor = f"{autor[1]} {autor[2]}" if autor else "Desconocido"
+            
+            # Mostrar en la tabla
+            tree.insert("", tk.END, values=(libro[0], libro[1], libro[2], libro[3], nombre_autor, libro[5]))
+
+    def _guardar_libro(self, tree):
+        """Guarda un nuevo libro"""
+        try:
+            # Extraer ID del autor del string "id - nombre apellido"
+            autor_id = self.vars_libro['autor_id'].get().split(' - ')[0]
+            
+            libro = Libro(
+                code_isbn=self.vars_libro['isbn'].get(),
+                titulo=self.vars_libro['titulo'].get(),
+                genero=self.vars_libro['genero'].get(),
+                anio_publicacion=int(self.vars_libro['ano_publicacion'].get()),
+                autor=autor_id,
+                cant_disponible=int(self.vars_libro['cantidad_disponible'].get())
+            )
+            libro_service = LibroService(self.db)
+            libro_service.registrar_libro(libro)
+            self._limpiar_campos_libro()
+            self._cargar_libros(tree)
+            messagebox.showinfo("Éxito", "Libro guardado correctamente")
+        except Exception as e:
+            messagebox.showerror("Error", str(e))
+
+    def _actualizar_libro(self, tree):
+        """Actualiza un libro existente"""
+        if not self.vars_libro['isbn'].get():
+            messagebox.showwarning("Advertencia", "Por favor, seleccione un libro para actualizar")
+            return
+        
+        try:
+            autor_id = self.vars_libro['autor_id'].get().split(' - ')[0]
+            libro_service = LibroService(self.db)
+            libro_data = {
+                'titulo': self.vars_libro['titulo'].get(),
+                'genero': self.vars_libro['genero'].get(),
+                'ano_publicacion': int(self.vars_libro['ano_publicacion'].get()),
+                'id_autor': autor_id,
+                'cantidad_disponible': int(self.vars_libro['cantidad_disponible'].get())
+            }
+            libro_service.update_libro(self.vars_libro['isbn'].get(), libro_data)
+            self._limpiar_campos_libro()
+            self._cargar_libros(tree)
+            messagebox.showinfo("Éxito", "Libro actualizado correctamente")
+        except Exception as e:
+            messagebox.showerror("Error", str(e))
+
+    def _eliminar_libro(self, tree):
+        """Elimina un libro"""
+        if not self.vars_libro['isbn'].get():
+            messagebox.showwarning("Advertencia", "Por favor, seleccione un libro para eliminar")
+            return
+        
+        if messagebox.askyesno("Confirmar", "¿Está seguro de eliminar este libro?"):
+            try:
+                libro_service = LibroService(self.db)
+                libro_service.delete_libro(self.vars_libro['isbn'].get())
+                self._limpiar_campos_libro()
+                self._cargar_libros(tree)
+                messagebox.showinfo("Éxito", "Libro eliminado correctamente")
+            except Exception as e:
+                messagebox.showerror("Error", str(e))
+
+    def _seleccionar_libro(self, event, tree):
+        """Maneja la selección de un libro en la tabla"""
+        selected_item = tree.selection()
+        if selected_item:
+            item = tree.item(selected_item[0])
+            libro = item['values']
+            self.vars_libro['isbn'].set(libro[0])
+            self.vars_libro['titulo'].set(libro[1])
+            self.vars_libro['genero'].set(libro[2])
+            self.vars_libro['ano_publicacion'].set(libro[3])
+            self.vars_libro['autor_id'].set(libro[4])
+            self.vars_libro['cantidad_disponible'].set(libro[5])
+
+    def _limpiar_campos_libro(self):
+        """Limpia los campos del formulario"""
+        for var in self.vars_libro.values():
+            var.set("")
 
     def abrir_reportes(self):
         ventana_reportes = tk.Toplevel(self)

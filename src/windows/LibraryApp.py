@@ -7,40 +7,101 @@ from classes.Usuario import Usuario
 from classes.Prestamo import Prestamo
 from services.LibroService import LibroService
 from services.AutorService import AutorService
+import os
+from tkinter import PhotoImage
+from PIL import Image, ImageTk, ImageEnhance, ImageDraw
+
 
 class LibraryApp(tk.Tk):
     def __init__(self, db):
         super().__init__()
-        self.title("Gestión de Biblioteca")
-        self.geometry("600x500")
-        self.configure(bg="#f5f5f5")
         self.db = db
+        self.title("BibliotecApp")
+        self.geometry("1950x1024")
+        self.iconbitmap("C:/Users/Usuario/General/Archivos Fran Dell/Ingeniería en Sistemas/4° Cuarto Año/Desarrollo de Aplicaciones con Objetos (DAO)/TPI-DAO-4K1/src/images/logo_app.ico")
 
-        # Título de la aplicación
-        tk.Label(self, text="Gestión de Biblioteca", font=("Helvetica", 16, "bold"), bg="#f5f5f5", fg="#333").pack(pady=10)
+        # Cargar y colocar la imagen de fondo con transparencia
+        background_image = Image.open("C:/Users/Usuario/General/Archivos Fran Dell/Ingeniería en Sistemas/4° Cuarto Año/Desarrollo de Aplicaciones con Objetos (DAO)/TPI-DAO-4K1/src/images/fondo.jpg")
+        background_image = background_image.resize((1950, 1024), Image.LANCZOS)
+        background_image = self.apply_transparency(background_image, alpha=0.4)
+        self.background_photo = ImageTk.PhotoImage(background_image)
+        background_label = tk.Label(self, image=self.background_photo)
+        background_label.place(x=0, y=0, relwidth=1, relheight=1)
 
-        # Menú de opciones
-        options_frame = tk.Frame(self, bg="#f5f5f5")
-        options_frame.pack(pady=10)
+        # Título
+        tk.Label(self, text="BibliotecApp", font=("Helvetica", 26, "bold")).pack(pady=20)
+
+        # Botones de opciones redondeados con color personalizado
+        self.create_rounded_button("Autores", self.abrir_autores, "#DA9A9A").pack(pady=15)
+        self.create_rounded_button("Usuarios", self.abrir_usuarios, "#DA9A9A").pack(pady=15)
+        self.create_rounded_button("Libros", self.abrir_libros, "#DA9A9A").pack(pady=15)
+        self.create_rounded_button("Reportes", self.abrir_reportes, "#DA9A9A").pack(pady=15)
+
+        # Botón de salir
+        tk.Button(self, text="SALIR", width=30, height=2, bg="#FF6565", font=("Helvetica", 14, "bold"), command=self.salir).pack(pady=30)
+
+    def apply_transparency(self, image, alpha):
+        """Aplica transparencia a una imagen."""
+        enhancer = ImageEnhance.Brightness(image)
+        return enhancer.enhance(alpha)
+
+    def create_rounded_button(self, text, command, bg_color):
+        """Crea un botón redondeado con texto e imagen de fondo con color especificado."""
+        # Dimensiones del botón
+        button_width = 566
+        button_height = 92
         
-        # Botones de opciones
-        tk.Button(options_frame, text="Nuevo Autor", command=self.show_nuevo_autor, width=15, bg="#4CAF50", fg="white").grid(row=0, column=0, padx=10, pady=5)
-        tk.Button(options_frame, text="Nuevo Libro", command=self.show_nuevo_libro, width=15, bg="#4CAF50", fg="white").grid(row=0, column=1, padx=10, pady=5)
-        tk.Button(options_frame, text="Préstamo", command=self.show_prestamo, width=15, bg="#4CAF50", fg="white").grid(row=0, column=2, padx=10, pady=5)
-        tk.Button(options_frame, text="Usuario nuevo", command=self.show_usuario, width=15, bg="#4CAF50", fg="white").grid(row=0, column=5, padx=10, pady=5)
+        # Calcular el radio de los bordes como el 30% de la altura
+        radius = int(0.3 * min(button_width, button_height))
 
-        # Frame contenedor donde se mostrarán los formularios
-        self.content_frame = tk.Frame(self, bg="#f5f5f5")
-        self.content_frame.pack(fill="both", expand=True, padx=20, pady=20)
+        # Crear una imagen de botón redondeado con el color especificado
+        button_image = Image.new("RGBA", (button_width, button_height), bg_color)
+        draw = ImageDraw.Draw(button_image)
+        
+        # Dibuja el rectángulo redondeado con el nuevo radio
+        draw.rounded_rectangle((0, 0, button_width, button_height), radius=radius, fill=bg_color)
 
-        # Inicialización de los formularios
-        self.create_nuevo_autor_form()
-        self.create_nuevo_libro_form()
-        self.create_prestamo_form()
-        self.create_usuario_form()
+        # Convertir la imagen a formato tkinter
+        button_photo = ImageTk.PhotoImage(button_image)
 
-        # Mostrar el formulario de Nuevo Autor por defecto
-        self.show_nuevo_autor()
+        # Crear un botón usando la imagen
+        button = tk.Button(self, text=text, image=button_photo, compound="center",
+                        font=("Helvetica", 22), command=command, borderwidth=0, width=button_width, height=button_height)
+        button.image = button_photo  # Mantener referencia a la imagen
+        return button
+
+
+    # Métodos para abrir cada ventana
+    def abrir_autores(self):
+        ventana_autores = tk.Toplevel(self)
+        ventana_autores.title("Autores")
+        ventana_autores.geometry("400x300")
+        tk.Label(ventana_autores, text="Gestión de Autores", font=("Helvetica", 16)).pack(pady=20)
+        tk.Button(ventana_autores, text="Volver", command=ventana_autores.destroy).pack(pady=10)
+
+    def abrir_usuarios(self):
+        ventana_usuarios = tk.Toplevel(self)
+        ventana_usuarios.title("Usuarios")
+        ventana_usuarios.geometry("400x300")
+        tk.Label(ventana_usuarios, text="Gestión de Usuarios", font=("Helvetica", 16)).pack(pady=20)
+        tk.Button(ventana_usuarios, text="Volver", command=ventana_usuarios.destroy).pack(pady=10)
+
+    def abrir_libros(self):
+        ventana_libros = tk.Toplevel(self)
+        ventana_libros.title("Libros")
+        ventana_libros.geometry("400x300")
+        tk.Label(ventana_libros, text="Gestión de Libros", font=("Helvetica", 16)).pack(pady=20)
+        tk.Button(ventana_libros, text="Volver", command=ventana_libros.destroy).pack(pady=10)
+
+    def abrir_reportes(self):
+        ventana_reportes = tk.Toplevel(self)
+        ventana_reportes.title("Reportes")
+        ventana_reportes.geometry("400x300")
+        tk.Label(ventana_reportes, text="Gestión de Reportes", font=("Helvetica", 16)).pack(pady=20)
+        tk.Button(ventana_reportes, text="Volver", command=ventana_reportes.destroy).pack(pady=10)
+
+    def salir(self):
+        self.destroy()
 
     def clear_content_frame(self):
         # Oculta todos los frames de formularios

@@ -5,6 +5,3 @@ class Autor():
         self.apellido = apellido
         self.telefono = telefono
         self.nacionalidad = nacionalidad
-        
-    def registrar_autor(self):
-        pass

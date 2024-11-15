@@ -28,7 +28,7 @@ class PrestamoService:
         libro_service = LibroService(self.db)
 
         #Verificar que el usuario asociado al préstamo exista en la BD
-        usuarioPrestamo = usuario_service.findUsuarioById(prestamo.usuario)
+        usuarioPrestamo = usuario_service.find_usuario_by_id(prestamo.usuario)
 
 
         #Verificar que el libro asociado al préstamo exista en la BD
@@ -39,7 +39,7 @@ class PrestamoService:
         estaDisponible = libro_service.consultarDispinibilidadLibro(prestamo.libro)
 
         #verificar si el usuario tiene prestamos disponibles
-        tienePrestamos = usuario_service.tienePrestamosUsuario(prestamo.usuario)
+        tienePrestamos = usuario_service.tiene_prestamos_disponibles(prestamo.usuario)
 
         #Verificar que el libro asociado al préstamo esté disponible, que el usuario esté reg y que el libro también lo esté
         if(usuarioPrestamo is not None and libroPrestamo is not None and estaDisponible and tienePrestamos):
@@ -120,7 +120,7 @@ class PrestamoService:
         query = """
             SELECT p.id, u.nombre AS usuario, l.titulo AS libro, p.fecha_prestamo, p.fecha_devolucion
             FROM prestamos p
-            JOIN usuarios u ON p.usuario_id = u.id
-            JOIN libros l ON p.libro_id = l.id;
+            JOIN usuarios u ON p.id_usuario = u.id
+            JOIN libros l ON p.isbn_libro = l.isbn;
         """
         return self.db.fetch_query(query)

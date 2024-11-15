@@ -706,7 +706,7 @@ class LibraryApp(tk.Tk):
 
         # Crear listas desplegables
         usuarios_lista = [f"{usuario[0]} - {usuario[1]} {usuario[2]}" for usuario in usuarios]
-        libros_lista = [f"{libro[1]} - {libro[2]}" for libro in libros]
+        libros_lista = [f"{libro[0]} - {libro[1]}" for libro in libros]
 
         # Crear campos del formulario
         campos = [
@@ -750,7 +750,7 @@ class LibraryApp(tk.Tk):
         table_frame.pack(fill=tk.BOTH, expand=True, padx=5, pady=5)
 
         # Crear tabla
-        columns = ("ID Usuario", "ISBN", "Fecha Préstamo", "Fecha Devolución", "Fecha Devolución Real")
+        columns = ("Usuario", "ISBN", "Fecha Préstamo", "Fecha Devolución", "Fecha Devolución Real")
         tree = ttk.Treeview(table_frame, columns=columns, show="headings")
 
         # Configurar columnas
@@ -771,47 +771,79 @@ class LibraryApp(tk.Tk):
         self._cargar_prestamos(tree)
 
 
-
     def _cargar_prestamos(self, tree):
         """Carga los préstamos en la tabla."""
         # Limpiar la tabla
         for item in tree.get_children():
             tree.delete(item)
 
-        # Obtener los datos de la base de datos
-        prestamos = self.get_all_prestamos()
+        prestamos_service = PrestamoService(self.db)
+        prestamos = prestamos_service.get_all_prestamos()
+        print("Préstamos recuperados:", prestamos)
+
+        # Verificar si se obtuvieron datos
+        if not prestamos:
+            print("No hay préstamos para mostrar.")
+            return
 
         # Insertar los datos en la tabla
         for prestamo in prestamos:
+            # Ajustar según la estructura de las tuplas devueltas
             tree.insert(
-                "", 
-                "end", 
+                "",
+                "end",
                 values=(
-                    prestamo["id"], 
-                    prestamo["usuario"], 
-                    prestamo["libro"], 
-                    prestamo["fecha_prestamo"], 
-                    prestamo["fecha_devolucion"]
-                )
+                    prestamo[1],  # usuario
+                    prestamo[2],  # libro
+                    prestamo[3],  # fecha_prestamo
+                    prestamo[4],  # fecha_devolucion
+                ),
             )
+
+
 
 
     def _registrar_prestamo(self, tree):
         """Registra un nuevo préstamo"""
         try:
+            # Extraer valores del formulario
+            usuario_id = self.vars_prestamo['id_usuario'].get().split(" - ")[0]
+            isbn = self.vars_prestamo['isbn_libro'].get().split(" - ")[0]
+
+            fecha_prestamo = self.vars_prestamo['fecha_prestamo'].get()
+            fecha_devolucion = self.vars_prestamo['fecha_devolucion'].get()
+
+            # Instancias de usuario y libro
+            usuario_service = UsuarioService(self.db)
+            libro_service = LibroService(self.db)
+
+            usuario = usuario_service.find_usuario_by_id(usuario_id)
+            libro = libro_service.findLibroByIsdn(isbn)
+
+            if usuario is None:
+                raise Exception(f"Usuario con ID {usuario_id} no encontrado")
+            if libro is None:
+                raise Exception(f"Libro con ISBN {isbn} no encontrado")
+
+            # Crear objeto de préstamo
             prestamo = Prestamo(
-                id_usuario=self.vars_prestamo['id_usuario'].get(),
-                isbn_libro=self.vars_prestamo['isbn_libro'].get(),
-                fecha_prestamo=self.vars_prestamo['fecha_prestamo'].get(),
-                fecha_devolucion=self.vars_prestamo['fecha_devolucion'].get(),
+                usuario=usuario,
+                libro=libro,
+                fecha_prestamo=fecha_prestamo,
+                fecha_devolucion=fecha_devolucion,
             )
+
+            # Registrar en la base de datos
             prestamo_service = PrestamoService(self.db)
             prestamo_service.registrar_prestamo(prestamo)
+
+            # Actualizar interfaz
             self._limpiar_campos_prestamo()
             self._cargar_prestamos(tree)
             messagebox.showinfo("Éxito", "Préstamo registrado correctamente")
         except Exception as e:
-            messagebox.showerror("Error", str(e))
+            messagebox.showerror("Error", f"Error al registrar el préstamo: {e}")
+
 
     def _actualizar_prestamo(self, tree):
         """Actualiza un préstamo existente"""
@@ -829,7 +861,6 @@ class LibraryApp(tk.Tk):
         """Limpia los campos del formulario"""
         for var in self.vars_prestamo.values():
             var.set("")
-
 
 
     def salir(self):

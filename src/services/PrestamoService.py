@@ -115,6 +115,12 @@ class PrestamoService:
         print(f"{prestamo.usuario.nombre} devolvio el libro {prestamo.libro.titulo} cuyo prestamo tiene el id: {prestamo.id}")
 
                     
-                        
-
-            
+    def get_all_prestamos(self):
+        """Obtiene todos los préstamos registrados en la base de datos."""
+        query = """
+            SELECT p.id, u.nombre AS usuario, l.titulo AS libro, p.fecha_prestamo, p.fecha_devolucion
+            FROM prestamos p
+            JOIN usuarios u ON p.usuario_id = u.id
+            JOIN libros l ON p.libro_id = l.id;
+        """
+        return self.db.fetch_query(query)

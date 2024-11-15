@@ -4,10 +4,12 @@ from tkinter import messagebox
 from services.BibliotecaService import BibliotecaService
 from classes.Autor import Autor
 from classes.Libro import Libro
+from classes.Prestamo import Prestamo
 from classes.Usuario import Usuario, Estudiante, Profesor
 from services.UsuarioService import UsuarioService
 from services.LibroService import LibroService
 from services.AutorService import AutorService
+from services.PrestamoService import PrestamoService
 from services.ReporteService import ReporteService
 from PIL import Image, ImageTk, ImageEnhance, ImageDraw
 import services.ApiPaises
@@ -34,10 +36,11 @@ class LibraryApp(tk.Tk):
         tk.Label(self, text="BibliotecApp", font=("Helvetica", 26, "bold")).pack(pady=20)
 
         # Botones de opciones redondeados con color personalizado
-        self.create_rounded_button("Autores", self.abrir_autores, "#DA9A9A").pack(pady=15)
-        self.create_rounded_button("Usuarios", self.abrir_usuarios, "#DA9A9A").pack(pady=15)
-        self.create_rounded_button("Libros", self.abrir_libros, "#DA9A9A").pack(pady=15)
-        self.create_rounded_button("Reportes", self.abrir_reportes, "#DA9A9A").pack(pady=15)
+        self.create_rounded_button("Autores", self.abrir_autores, "#DA9A9A").pack(pady=10)
+        self.create_rounded_button("Usuarios", self.abrir_usuarios, "#DA9A9A").pack(pady=10)
+        self.create_rounded_button("Libros", self.abrir_libros, "#DA9A9A").pack(pady=10)
+        self.create_rounded_button("Prestamos", self.abrir_prestamos, "#DA9A9A").pack(pady=10)
+        self.create_rounded_button("Reportes", self.abrir_reportes, "#DA9A9A").pack(pady=10)
 
         # Botón de salir
         tk.Button(self, text="SALIR", width=30, height=2, bg="#FF6565", font=("Helvetica", 14, "bold"), command=self.salir).pack(pady=30)
@@ -660,6 +663,173 @@ class LibraryApp(tk.Tk):
         """Limpia los campos del formulario"""
         for var in self.vars_libro.values():
             var.set("")
+
+
+    def abrir_prestamos(self):
+        ventana_prestamos = tk.Toplevel(self)
+        ventana_prestamos.title("Gestión de Préstamos")
+        ventana_prestamos.geometry("1000x600")
+        ventana_prestamos.iconbitmap(
+            r"C:/Users/Usuario/General/Archivos Fran Dell/Ingeniería en Sistemas/4° Cuarto Año/Desarrollo de Aplicaciones con Objetos (DAO)/TPI-DAO-4K1/src/images/logo_app.ico")
+
+        # Centrar ventana
+        pantalla_ancho = ventana_prestamos.winfo_screenwidth()
+        pantalla_alto = ventana_prestamos.winfo_screenheight()
+        x = (pantalla_ancho // 2) - (1000 // 2)
+        y = (pantalla_alto // 2) - (600 // 2)
+        ventana_prestamos.geometry(f"{1000}x{600}+{x}+{y}")
+
+        # Frame principal
+        main_frame = ttk.Frame(ventana_prestamos, padding="10")
+        main_frame.pack(fill=tk.BOTH, expand=True)
+
+        # Frame para el formulario
+        form_frame = ttk.LabelFrame(main_frame, text="Datos del Préstamo", padding="10")
+        form_frame.pack(fill=tk.X, padx=5, pady=5)
+
+        # Variables del formulario
+        self.vars_prestamo = {
+            'id_usuario': tk.StringVar(),
+            'isbn_libro': tk.StringVar(),
+            'fecha_prestamo': tk.StringVar(),
+            'fecha_devolucion': tk.StringVar(),
+            'fecha_devolucion_real': tk.StringVar(),
+        }
+
+        # Obtener datos de usuarios y libros
+
+        usuario_service = UsuarioService(self.db)
+        libros_service = LibroService(self.db)
+
+        usuarios = usuario_service.get_all_usuarios()
+        libros = libros_service.get_all_libros()
+
+        # Crear listas desplegables
+        usuarios_lista = [f"{usuario[0]} - {usuario[1]} {usuario[2]}" for usuario in usuarios]
+        libros_lista = [f"{libro[1]} - {libro[2]}" for libro in libros]
+
+        # Crear campos del formulario
+        campos = [
+            ("Usuario:", 'id_usuario', 0),
+            ("Libro:", 'isbn_libro', 2),
+            ("Fecha Préstamo:", 'fecha_prestamo', 4),
+            ("Fecha Devolución:", 'fecha_devolucion', 0, 1),
+            ("Fecha Devolución Real:", 'fecha_devolucion_real', 2, 1),
+        ]
+
+        for campo in campos:
+            label_text, var_name, col = campo[:3]
+            row = campo[3] if len(campo) > 3 else 0
+
+            ttk.Label(form_frame, text=label_text).grid(row=row, column=col, padx=5, pady=5)
+
+            if var_name == 'id_usuario':
+                # Desplegable para usuarios
+                ttk.Combobox(form_frame, textvariable=self.vars_prestamo[var_name], values=usuarios_lista).grid(
+                    row=row, column=col + 1, padx=5, pady=5)
+            elif var_name == 'isbn_libro':
+                # Desplegable para libros
+                ttk.Combobox(form_frame, textvariable=self.vars_prestamo[var_name], values=libros_lista).grid(
+                    row=row, column=col + 1, padx=5, pady=5)
+            else:
+                # Entrada normal
+                ttk.Entry(form_frame, textvariable=self.vars_prestamo[var_name]).grid(row=row, column=col + 1, padx=5, pady=5)
+
+        # Frame para botones
+        button_frame = ttk.Frame(form_frame)
+        button_frame.grid(row=2, column=0, columnspan=8, pady=10)
+
+        # Botones
+        ttk.Button(button_frame, text="Registrar", command=lambda: self._registrar_prestamo(tree)).pack(side=tk.LEFT, padx=5)
+        ttk.Button(button_frame, text="Actualizar", command=lambda: self._actualizar_prestamo(tree)).pack(side=tk.LEFT, padx=5)
+        ttk.Button(button_frame, text="Eliminar", command=lambda: self._eliminar_prestamo(tree)).pack(side=tk.LEFT, padx=5)
+        ttk.Button(button_frame, text="Limpiar", command=self._limpiar_campos_prestamo).pack(side=tk.LEFT, padx=5)
+
+        # Frame para la tabla
+        table_frame = ttk.Frame(main_frame)
+        table_frame.pack(fill=tk.BOTH, expand=True, padx=5, pady=5)
+
+        # Crear tabla
+        columns = ("ID Usuario", "ISBN", "Fecha Préstamo", "Fecha Devolución", "Fecha Devolución Real")
+        tree = ttk.Treeview(table_frame, columns=columns, show="headings")
+
+        # Configurar columnas
+        for col in columns:
+            tree.heading(col, text=col)
+            tree.column(col, width=200)
+
+        # Agregar scrollbar
+        scrollbar = ttk.Scrollbar(table_frame, orient=tk.VERTICAL, command=tree.yview)
+        scrollbar.pack(side=tk.RIGHT, fill=tk.Y)
+        tree.configure(yscrollcommand=scrollbar.set)
+        tree.pack(fill=tk.BOTH, expand=True, side=tk.LEFT)
+
+        # Vincular evento de selección
+        tree.bind('<<TreeviewSelect>>', lambda event: self._seleccionar_prestamo(event, tree))
+
+        # Cargar datos iniciales
+        self._cargar_prestamos(tree)
+
+
+
+    def _cargar_prestamos(self, tree):
+        """Carga los préstamos en la tabla."""
+        # Limpiar la tabla
+        for item in tree.get_children():
+            tree.delete(item)
+
+        # Obtener los datos de la base de datos
+        prestamos = self.get_all_prestamos()
+
+        # Insertar los datos en la tabla
+        for prestamo in prestamos:
+            tree.insert(
+                "", 
+                "end", 
+                values=(
+                    prestamo["id"], 
+                    prestamo["usuario"], 
+                    prestamo["libro"], 
+                    prestamo["fecha_prestamo"], 
+                    prestamo["fecha_devolucion"]
+                )
+            )
+
+
+    def _registrar_prestamo(self, tree):
+        """Registra un nuevo préstamo"""
+        try:
+            prestamo = Prestamo(
+                id_usuario=self.vars_prestamo['id_usuario'].get(),
+                isbn_libro=self.vars_prestamo['isbn_libro'].get(),
+                fecha_prestamo=self.vars_prestamo['fecha_prestamo'].get(),
+                fecha_devolucion=self.vars_prestamo['fecha_devolucion'].get(),
+            )
+            prestamo_service = PrestamoService(self.db)
+            prestamo_service.registrar_prestamo(prestamo)
+            self._limpiar_campos_prestamo()
+            self._cargar_prestamos(tree)
+            messagebox.showinfo("Éxito", "Préstamo registrado correctamente")
+        except Exception as e:
+            messagebox.showerror("Error", str(e))
+
+    def _actualizar_prestamo(self, tree):
+        """Actualiza un préstamo existente"""
+        # Implementar funcionalidad similar al registro
+
+    def _eliminar_prestamo(self, tree):
+        """Elimina un préstamo"""
+        # Implementar funcionalidad similar al registro
+
+    def _seleccionar_prestamo(self, event, tree):
+        """Selecciona un préstamo de la tabla"""
+        # Implementar funcionalidad similar a selección de libros
+
+    def _limpiar_campos_prestamo(self):
+        """Limpia los campos del formulario"""
+        for var in self.vars_prestamo.values():
+            var.set("")
+
 
 
     def salir(self):
